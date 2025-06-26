@@ -1,0 +1,16 @@
+virtual-consultation-room/
+├── src/
+│   ├── components/
+│   │   ├── VirtualRoom.tsx
+│   │   └── ChatInterface.tsx
+│   ├── hooks/
+│   │   ├── useSpeechRecognition.ts
+│   │   └── useSpeechSynthesis.ts
+│   ├── services/
+│   │   └── aiService.ts
+│   ├── App.tsx
+│   ├── main.tsx
+│   └── index.css
+├── package.json
+├── tailwind.config.js
+└── vite.config.ts
