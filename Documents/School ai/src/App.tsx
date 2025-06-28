@@ -4,7 +4,7 @@ import VirtualRoom from './components/VirtualRoom';
 import ChatInterface from './components/ChatInterface';
 import { useSpeechRecognition } from './hooks/useSpeechRecognition';
 import { useSpeechSynthesis } from './hooks/useSpeechSynthesis';
-import { aiService } from './services/aiService';
+import { geminiApiService } from './services/geminiApiService';
 import { Heart, Shield, Users } from 'lucide-react';
 
 interface Message {
@@ -40,8 +40,8 @@ function App() {
     setIsProcessing(true);
 
     try {
-      const response = await aiService.getCounselingResponse(text);
-      
+      const response = await geminiApiService.getCounselingResponse(text);
+
       const aiMessage: Message = {
         id: (Date.now() + 1).toString(),
         text: response,
@@ -78,7 +78,7 @@ function App() {
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50">
       {/* Header */}
-      <motion.header 
+      <motion.header
         initial={{ opacity: 0, y: -20 }}
         animate={{ opacity: 1, y: 0 }}
         className="bg-white/90 backdrop-blur-sm border-b border-gray-200 sticky top-0 z-50"
@@ -112,20 +112,20 @@ function App() {
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 h-[calc(100vh-200px)]">
           {/* 3D Room */}
-          <motion.div 
+          <motion.div
             initial={{ opacity: 0, x: -20 }}
             animate={{ opacity: 1, x: 0 }}
             transition={{ delay: 0.2 }}
             className="lg:col-span-2 bg-white/50 backdrop-blur-sm rounded-2xl shadow-xl overflow-hidden"
           >
-            <VirtualRoom 
-              isListening={isListening} 
-              isSpeaking={isSpeaking || isProcessing} 
+            <VirtualRoom
+              isListening={isListening}
+              isSpeaking={isSpeaking || isProcessing}
             />
           </motion.div>
 
           {/* Chat Interface */}
-          <motion.div 
+          <motion.div
             initial={{ opacity: 0, x: 20 }}
             animate={{ opacity: 1, x: 0 }}
             transition={{ delay: 0.4 }}
@@ -136,6 +136,7 @@ function App() {
               messages={messages}
               isListening={isListening}
               isSpeaking={isSpeaking || isProcessing}
+              isProcessing={isProcessing}
               onStartListening={startListening}
               onStopListening={stopListening}
               onToggleSpeech={toggleSpeech}
@@ -145,7 +146,7 @@ function App() {
         </div>
 
         {/* Footer Info */}
-        <motion.div 
+        <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.6 }}
