@@ -152,7 +152,7 @@ function App() {
           transition={{ delay: 0.6 }}
           className="mt-8 text-center"
         >
-          <div className="bg-white/70 backdrop-blur-sm rounded-xl p-6 shadow-lg">
+          {/* <div className="bg-white/70 backdrop-blur-sm rounded-xl p-6 shadow-lg">
             <h3 className="text-lg font-semibold text-gray-900 mb-2">How to Use</h3>
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm text-gray-600">
               <div className="flex items-center justify-center space-x-2">
@@ -168,7 +168,7 @@ function App() {
                 <span>Listen to responses with text-to-speech</span>
               </div>
             </div>
-          </div>
+          </div> */}
         </motion.div>
       </main>
     </div>
