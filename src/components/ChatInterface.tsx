@@ -110,7 +110,7 @@ export default function ChatInterface({
   };
 
   return (
-    <div className="flex flex-col h-full bg-white/90 backdrop-blur-sm rounded-2xl shadow-xl border border-gray-200">
+    <div className="flex flex-col h-[80vh] bg-white/90 backdrop-blur-sm rounded-2xl shadow-xl border border-gray-200">
       {/* Header */}
       <div className="flex items-center justify-between p-6 border-b border-gray-200">
         <div>
@@ -131,9 +131,9 @@ export default function ChatInterface({
       </div>
 
       {/* Messages */}
-      <div className="flex-1 min-h-0 flex flex-col">
+      <div className="flex-1 overflow-hidden">
         <div
-          className="flex-1 overflow-y-auto p-6 space-y-4 max-h-[60vh] sm:max-h-[500px] min-h-[250px]"
+          className="h-full overflow-y-auto p-6 space-y-4"
           style={{
             scrollbarWidth: 'thin',
             scrollbarColor: '#d1d5db #f3f4f6'
