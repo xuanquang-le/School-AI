@@ -1,9 +1,11 @@
 import React from 'react';
 import { Canvas } from '@react-three/fiber';
 import { OrbitControls, Environment, Text, Box, Plane } from '@react-three/drei';
-import { MixamoAvatar } from './MixamoAvatar';
+import EnhancedMixamoAvatar from './EnhancedMixamoAvatar';
+import { Character } from '../types/Character';
 
 interface VirtualRoomProps {
+  character: Character;
   isListening: boolean;
   isSpeaking: boolean;
 }
@@ -82,7 +84,19 @@ function Room() {
   );
 }
 
-export default function VirtualRoom({ isListening, isSpeaking }: VirtualRoomProps) {
+export default function VirtualRoom({ character, isListening, isSpeaking }: VirtualRoomProps) {
+  const getStatusText = () => {
+    if (isListening) return 'Listening...';
+    if (isSpeaking) return 'Speaking...';
+    return `${character.name} is ready to help`;
+  };
+
+  const getStatusColor = () => {
+    if (isListening) return '#EF4444';
+    if (isSpeaking) return '#F59E0B';
+    return '#10B981';
+  };
+
   return (
     <div className="w-full h-full">
       <Canvas
@@ -102,19 +116,36 @@ export default function VirtualRoom({ isListening, isSpeaking }: VirtualRoomProp
 
         <Room />
         
-        {/* Status text */}
+        {/* Character name */}
         <Text
-          position={[0, 2.8, 0]}
-          fontSize={0.2}
-          color={isListening ? '#EF4444' : isSpeaking ? '#F59E0B' : '#10B981'}
+          position={[0, 3.5, 0]}
+          fontSize={0.3}
+          color={character.color}
           anchorX="center"
           anchorY="middle"
         >
-          {isListening ? 'Listening...' : isSpeaking ? 'Speaking...' : 'Ready to help'}
+          {character.name}
         </Text>
 
-        {/* Replace Box-based avatar with Mixamo character */}
-        <MixamoAvatar isListening={isListening} isSpeaking={isSpeaking} />
+        {/* Status text */}
+        <Text
+          position={[0, 3, 0]}
+          fontSize={0.15}
+          color={getStatusColor()}
+          anchorX="center"
+          anchorY="middle"
+        >
+          {getStatusText()}
+        </Text>
+
+        {/* Enhanced Avatar with selected character */}
+        <EnhancedMixamoAvatar 
+          character={character}
+          position={[0, 0, 0]} 
+          scale={1} 
+          isListening={isListening} 
+          isSpeaking={isSpeaking} 
+        />
 
         <OrbitControls
           enablePan={false}

@@ -36,25 +36,24 @@ export function useSpeechSynthesis() {
 
     const utterance = new SpeechSynthesisUtterance(text);
     
-    // Find Vietnamese voice or fallback to default
-    const vietnameseVoice = voices.find(voice => 
+    // Find English voice or use default
+    const englishVoice = voices.find(voice => 
       voice.lang.includes('vi') || 
       voice.lang.includes('VI') ||
-      voice.name.toLowerCase().includes('vietnamese') ||
-      voice.name.toLowerCase().includes('vietnam')
+      voice.name.toLowerCase().includes('english')
     );
 
-    if (vietnameseVoice) {
-      utterance.voice = vietnameseVoice;
+    if (englishVoice) {
+      utterance.voice = vietnamessVoice;
       utterance.lang = 'vi-VN';
     } else {
-      // Fallback to Vietnamese language setting even without specific voice
+      // Fallback to English language setting
       utterance.lang = 'vi-VN';
     }
 
-    // Optimize settings for Vietnamese speech
-    utterance.rate = 0.85; // Slightly slower for better Vietnamese pronunciation
-    utterance.pitch = 1.1; // Slightly higher pitch for Vietnamese
+    // Optimize settings for English speech
+    utterance.rate = 0.9;
+    utterance.pitch = 1.0;
     utterance.volume = 0.8;
 
     utterance.onstart = () => {
@@ -66,7 +65,11 @@ export function useSpeechSynthesis() {
     };
 
     utterance.onerror = (event) => {
-      console.error('Speech synthesis error:', event);
+      if (event.error === 'interrupted') {
+        console.info('Speech synthesis interrupted (expected behavior)');
+      } else {
+        console.error('Speech synthesis error:', event);
+      }
       setIsSpeaking(false);
     };
 
@@ -84,9 +87,9 @@ export function useSpeechSynthesis() {
     isSpeaking,
     isSupported,
     voices: voices.filter(voice => 
-      voice.lang.includes('vi') || 
-      voice.lang.includes('VI') ||
-      voice.name.toLowerCase().includes('vietnamese')
+      voice.lang.includes('en') || 
+      voice.lang.includes('EN') ||
+      voice.name.toLowerCase().includes('english')
     )
   };
 }

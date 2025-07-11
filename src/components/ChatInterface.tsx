@@ -13,7 +13,7 @@ const TypingIndicator = () => {
     >
       <div className="max-w-xs lg:max-w-md px-4 py-3 rounded-2xl bg-gray-100 text-gray-900 shadow-sm">
         <div className="flex items-center space-x-2">
-          <span className="text-sm text-gray-600">AI đang suy nghĩ</span>
+          <span className="text-sm text-gray-600">AI is thinking</span>
           <div className="flex space-x-1">
             <motion.div
               className="w-2 h-2 bg-blue-500 rounded-full"
@@ -69,6 +69,7 @@ interface ChatInterfaceProps {
   onStopListening: () => void;
   onToggleSpeech: () => void;
   speechEnabled: boolean;
+  transcript?: string;
 }
 
 export default function ChatInterface({
@@ -80,7 +81,8 @@ export default function ChatInterface({
   onStartListening,
   onStopListening,
   onToggleSpeech,
-  speechEnabled
+  speechEnabled,
+  transcript = ""
 }: ChatInterfaceProps) {
   const [inputText, setInputText] = useState('');
   const messagesEndRef = useRef<HTMLDivElement>(null);
@@ -114,17 +116,19 @@ export default function ChatInterface({
       {/* Header */}
       <div className="flex items-center justify-between p-6 border-b border-gray-200">
         <div>
-          <h2 className="text-xl font-semibold text-gray-900">AI Counselor</h2>
+          <h2 className="text-xl font-semibold text-gray-900">💬 Chat with AI</h2>
           <p className="text-sm text-gray-500">
-            {isProcessing ? 'Đang xử lý...' : isSpeaking ? 'Speaking...' : isListening ? 'Listening...' : 'Ready to help'}
+            {isProcessing ? 'Processing...' : isSpeaking ? 'Speaking...' : isListening ? 'Listening...' : 'Ready to help'}
           </p>
         </div>
+        {/* Single audio toggle button */}
         <button
           onClick={onToggleSpeech}
           className={`p-3 rounded-full transition-all duration-200 ${speechEnabled
             ? 'bg-green-100 text-green-600 hover:bg-green-200'
             : 'bg-gray-100 text-gray-400 hover:bg-gray-200'
             }`}
+          title={speechEnabled ? 'Tắt âm thanh' : 'Bật âm thanh'}
         >
           {speechEnabled ? <Volume2 size={20} /> : <VolumeX size={20} />}
         </button>
@@ -181,29 +185,38 @@ export default function ChatInterface({
             <input
               type="text"
               value={inputText}
+              placeholder={
+                isListening 
+                  ? `🎤 Đang nghe... ${transcript || ''}` 
+                  : isProcessing 
+                    ? "⏳ Đang chờ AI trả lời..." 
+                    : "💬 Nhập tin nhắn hoặc dùng voice..."
+              }
               onChange={(e) => setInputText(e.target.value)}
-              placeholder={isProcessing ? "Đang đợi AI trả lời..." : "Type your message or use voice..."}
-              className="w-full px-4 py-3 pr-12 bg-gray-50 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent disabled:bg-gray-100 disabled:text-gray-500"
+              className="w-full px-4 py-3 pr-12 bg-gray-50 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent disabled:bg-gray-100 disabled:text-gray-500 transition-all duration-200"
               disabled={isListening || isProcessing}
             />
+            {/* Voice input button */}
             <button
               type="button"
               onClick={handleVoiceToggle}
               disabled={isProcessing}
-              className={`absolute right-3 top-1/2 transform -translate-y-1/2 p-1.5 rounded-full transition-all duration-200 ${isProcessing
+              className={`absolute right-3 top-1/2 transform -translate-y-1/2 p-1.5 rounded-full transition-all duration-200 ${
+                isProcessing
                   ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
                   : isListening
-                    ? 'bg-red-500 text-white hover:bg-red-600'
-                    : 'bg-gray-200 text-gray-600 hover:bg-gray-300'
+                    ? 'bg-red-500 text-white hover:bg-red-600 animate-pulse'
+                    : 'bg-gray-200 text-gray-600 hover:bg-gray-300 hover:scale-110'
                 }`}
             >
               {isListening ? <MicOff size={16} /> : <Mic size={16} />}
             </button>
           </div>
+          {/* Send button */}
           <button
             type="submit"
             disabled={!inputText.trim() || isListening || isProcessing}
-            className="p-3 bg-blue-500 text-white rounded-xl hover:bg-blue-600 disabled:bg-gray-300 disabled:cursor-not-allowed transition-colors duration-200"
+            className="p-3 bg-blue-500 text-white rounded-xl hover:bg-blue-600 hover:scale-105 disabled:bg-gray-300 disabled:cursor-not-allowed transition-all duration-200"
           >
             {isProcessing ? (
               <motion.div
@@ -216,6 +229,47 @@ export default function ChatInterface({
             )}
           </button>
         </form>
+        
+        {/* Status indicator */}
+        {(isListening || isProcessing || isSpeaking) && (
+          <motion.div
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -10 }}
+            className="mt-3 flex items-center justify-center space-x-2 text-sm text-gray-500"
+          >
+            {isListening && (
+              <>
+                <motion.div
+                  animate={{ scale: [1, 1.2, 1] }}
+                  transition={{ duration: 1, repeat: Infinity }}
+                  className="w-2 h-2 bg-red-500 rounded-full"
+                />
+                <span>🎤 Đang nghe giọng nói của bạn...</span>
+              </>
+            )}
+            {isProcessing && (
+              <>
+                <motion.div
+                  animate={{ rotate: 360 }}
+                  transition={{ duration: 1, repeat: Infinity, ease: "linear" }}
+                  className="w-4 h-4 border-2 border-blue-500 border-t-transparent rounded-full"
+                />
+                <span>🤖 AI đang suy nghĩ...</span>
+              </>
+            )}
+            {isSpeaking && (
+              <>
+                <motion.div
+                  animate={{ scale: [1, 1.3, 1] }}
+                  transition={{ duration: 0.5, repeat: Infinity }}
+                  className="w-2 h-2 bg-green-500 rounded-full"
+                />
+                <span>🔊 AI đang nói...</span>
+              </>
+            )}
+          </motion.div>
+        )}
       </div>
     </div>
   );
