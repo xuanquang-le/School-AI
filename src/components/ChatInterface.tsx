@@ -1,6 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Send, Mic, MicOff, Volume2, VolumeX } from 'lucide-react';
+import { Send, Mic, MicOff, Volume2, VolumeX, Pause } from 'lucide-react';
 
 // Typing indicator component
 const TypingIndicator = () => {
@@ -70,6 +70,7 @@ interface ChatInterfaceProps {
   onToggleSpeech: () => void;
   speechEnabled: boolean;
   transcript?: string;
+  onSpeakMessage?: (text: string) => void;
 }
 
 export default function ChatInterface({
@@ -82,9 +83,11 @@ export default function ChatInterface({
   onStopListening,
   onToggleSpeech,
   speechEnabled,
-  transcript = ""
+  transcript = "",
+  onSpeakMessage
 }: ChatInterfaceProps) {
   const [inputText, setInputText] = useState('');
+  const [speakingMessageId, setSpeakingMessageId] = useState<string | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   const scrollToBottom = () => {
@@ -110,6 +113,30 @@ export default function ChatInterface({
       onStartListening();
     }
   };
+
+  const handleSpeakMessage = (messageId: string, text: string) => {
+    if (speakingMessageId === messageId) {
+      // If this message is currently speaking, stop it
+      setSpeakingMessageId(null);
+      // We need to stop the current speech - this will be handled by the parent component
+      if (onSpeakMessage) {
+        onSpeakMessage(''); // Empty string to indicate stop
+      }
+    } else {
+      // Start speaking this message
+      setSpeakingMessageId(messageId);
+      if (onSpeakMessage) {
+        onSpeakMessage(text);
+      }
+    }
+  };
+
+  // Reset speaking message when global isSpeaking becomes false
+  useEffect(() => {
+    if (!isSpeaking) {
+      setSpeakingMessageId(null);
+    }
+  }, [isSpeaking]);
 
   return (
     <div className="flex flex-col h-[80vh] bg-white/90 backdrop-blur-sm rounded-2xl shadow-xl border border-gray-200">
@@ -156,16 +183,34 @@ export default function ChatInterface({
                   className={`max-w-xs lg:max-w-md px-4 py-3 rounded-2xl ${message.isUser
                     ? 'bg-blue-500 text-white'
                     : 'bg-gray-100 text-gray-900'
-                    } shadow-sm break-words`}
+                    } shadow-sm break-words relative`}
                 >
                   <p className="text-sm leading-relaxed whitespace-pre-wrap">{message.text}</p>
-                  <p className={`text-xs mt-1 ${message.isUser ? 'text-blue-100' : 'text-gray-500'
-                    }`}>
-                    {message.timestamp.toLocaleTimeString([], {
-                      hour: '2-digit',
-                      minute: '2-digit'
-                    })}
-                  </p>
+                  <div className={`flex items-center justify-between mt-1 ${message.isUser ? 'text-blue-100' : 'text-gray-500'}`}>
+                    <p className={`text-xs`}>
+                      {message.timestamp.toLocaleTimeString([], {
+                        hour: '2-digit',
+                        minute: '2-digit'
+                      })}
+                    </p>
+                    {/* Speak button for AI messages */}
+                    {!message.isUser && onSpeakMessage && (
+                      <button
+                        onClick={() => handleSpeakMessage(message.id, message.text)}
+                        className={`ml-2 p-1 rounded-full transition-colors duration-200 ${speakingMessageId === message.id
+                            ? 'bg-red-100 hover:bg-red-200'
+                            : 'hover:bg-gray-200'
+                          }`}
+                        title={speakingMessageId === message.id ? 'Dừng phát âm' : 'Nghe tin nhắn này'}
+                      >
+                        {speakingMessageId === message.id ? (
+                          <Pause size={14} className="text-red-600" />
+                        ) : (
+                          <Volume2 size={14} className="text-gray-600 hover:text-gray-800" />
+                        )}
+                      </button>
+                    )}
+                  </div>
                 </div>
               </motion.div>
             ))}
@@ -186,10 +231,10 @@ export default function ChatInterface({
               type="text"
               value={inputText}
               placeholder={
-                isListening 
-                  ? `🎤 Đang nghe... ${transcript || ''}` 
-                  : isProcessing 
-                    ? "⏳ Đang chờ AI trả lời..." 
+                isListening
+                  ? `🎤 Đang nghe... ${transcript || ''}`
+                  : isProcessing
+                    ? "⏳ Đang chờ AI trả lời..."
                     : "💬 Nhập tin nhắn hoặc dùng voice..."
               }
               onChange={(e) => setInputText(e.target.value)}
@@ -201,8 +246,7 @@ export default function ChatInterface({
               type="button"
               onClick={handleVoiceToggle}
               disabled={isProcessing}
-              className={`absolute right-3 top-1/2 transform -translate-y-1/2 p-1.5 rounded-full transition-all duration-200 ${
-                isProcessing
+              className={`absolute right-3 top-1/2 transform -translate-y-1/2 p-1.5 rounded-full transition-all duration-200 ${isProcessing
                   ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
                   : isListening
                     ? 'bg-red-500 text-white hover:bg-red-600 animate-pulse'
@@ -229,7 +273,7 @@ export default function ChatInterface({
             )}
           </button>
         </form>
-        
+
         {/* Status indicator */}
         {(isListening || isProcessing || isSpeaking) && (
           <motion.div
