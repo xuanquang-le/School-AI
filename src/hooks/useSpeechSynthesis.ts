@@ -44,7 +44,7 @@ export function useSpeechSynthesis() {
     );
 
     if (englishVoice) {
-      utterance.voice = vietnamessVoice;
+      utterance.voice = englishVoice;
       utterance.lang = 'vi-VN';
     } else {
       // Fallback to English language setting

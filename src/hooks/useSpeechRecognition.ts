@@ -41,8 +41,8 @@ export function useSpeechRecognition({
   const [transcript, setTranscript] = useState("");
   const [interimTranscript, setInterimTranscript] = useState("");
   const recognitionRef = useRef<SpeechRecognition | null>(null);
-  const timeoutRef = useRef<NodeJS.Timeout | null>(null);
-
+  // const timeoutRef = useRef<NodeJS.Timeout | null>(null);
+const timeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const startListening = useCallback(() => {
     if (
       !("webkitSpeechRecognition" in window) &&
