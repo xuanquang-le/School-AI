@@ -1,5 +1,5 @@
 import React, { Suspense, useRef, useEffect, useState } from 'react';
-import { iuseFrame as useFrame } from '@react-three/fiber';
+import { useFrame } from '@react-three/fiber';
 import { useGLTF } from '@react-three/drei';
 import * as THREE from 'three';
 import { Character, AVAILABLE_CHARACTERS } from '../types/Character';

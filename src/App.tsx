@@ -25,29 +25,6 @@ function App() {
 
   const { speak, stop, isSpeaking } = useSpeechSynthesis();
 
-  // Initialize greeting when character is selected
-  useEffect(() => {
-    if (selectedCharacter && !hasGreeted) {
-      const greetingMessage: Message = {
-        id: '1',
-        text: selectedCharacter.greeting,
-        isUser: false,
-        timestamp: new Date()
-      };
-      
-      setMessages([greetingMessage]);
-      
-      // Auto-speak greeting after a short delay
-      setTimeout(() => {
-        if (speechEnabled) {
-          speak(selectedCharacter.greeting);
-        }
-      }, 1000);
-      
-      setHasGreeted(true);
-    }
-  }, [selectedCharacter, speechEnabled, speak, hasGreeted]);
-
   const handleSendMessage = useCallback(async (text: string) => {
     const userMessage: Message = {
       id: Date.now().toString(),
@@ -84,6 +61,17 @@ function App() {
     }
   }, [speak, speechEnabled]);
 
+  const toggleSpeech = useCallback(() => {
+    setSpeechEnabled(prev => {
+      const newValue = !prev;
+      // Stop speaking if disabling speech
+      if (!newValue) {
+        stop();
+      }
+      return newValue;
+    });
+  }, [stop]);
+
   const { isListening, startListening, stopListening, transcript } = useSpeechRecognition({
     onResult: handleSendMessage,
     onError: (error) => {
@@ -91,12 +79,28 @@ function App() {
     }
   });
 
-  const toggleSpeech = () => {
-    if (speechEnabled && isSpeaking) {
-      stop();
+  // Initialize greeting when character is selected
+  useEffect(() => {
+    if (selectedCharacter && !hasGreeted) {
+      const greetingMessage: Message = {
+        id: '1',
+        text: selectedCharacter.greeting,
+        isUser: false,
+        timestamp: new Date()
+      };
+      
+      setMessages([greetingMessage]);
+      
+      // Auto-speak greeting after a short delay
+      setTimeout(() => {
+        if (speechEnabled) {
+          speak(selectedCharacter.greeting);
+        }
+      }, 1000);
+      
+      setHasGreeted(true);
     }
-    setSpeechEnabled(!speechEnabled);
-  };
+  }, [selectedCharacter, speechEnabled, speak, hasGreeted]);
 
   const handleBackToSelection = () => {
     setSelectedCharacter(null);
