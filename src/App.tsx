@@ -1,5 +1,5 @@
 import React, { useState, useCallback, useEffect } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
+import { motion } from 'framer-motion';
 import CharacterSelection from './components/CharacterSelection';
 import VirtualRoom from './components/VirtualRoom';
 import ChatInterface from './components/ChatInterface';
@@ -24,6 +24,14 @@ function App() {
   const [hasGreeted, setHasGreeted] = useState(false);
 
   const { speak, stop, isSpeaking } = useSpeechSynthesis();
+
+  const handleSpeakMessage = useCallback((text: string) => {
+    if (text === '') {
+      stop();
+    } else {
+      speak(text);
+    }
+  }, [speak, stop]);
 
   const handleSendMessage = useCallback(async (text: string) => {
     const userMessage: Message = {
@@ -212,6 +220,7 @@ function App() {
               onToggleSpeech={toggleSpeech}
               speechEnabled={speechEnabled}
               transcript={transcript}
+              onSpeakMessage={handleSpeakMessage}
             />
           </motion.div>
         </div>
