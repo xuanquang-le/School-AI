@@ -1,6 +1,7 @@
 import React from 'react';
 import { Canvas } from '@react-three/fiber';
 import { OrbitControls, Environment, Text, Box, Plane } from '@react-three/drei';
+import { useLanguage } from '../contexts/LanguageContext';
 import EnhancedMixamoAvatar from './EnhancedMixamoAvatar';
 import { Character } from '../types/Character';
 
@@ -85,10 +86,12 @@ function Room() {
 }
 
 export default function VirtualRoom({ character, isListening, isSpeaking }: VirtualRoomProps) {
+  const { t } = useLanguage();
+  
   const getStatusText = () => {
-    if (isListening) return 'Listening...';
-    if (isSpeaking) return 'Speaking...';
-    return `${character.name} is ready to help`;
+    if (isListening) return t('room.listening');
+    if (isSpeaking) return t('room.speaking');
+    return `${character.name} ${t('room.ready')}`;
   };
 
   const getStatusColor = () => {

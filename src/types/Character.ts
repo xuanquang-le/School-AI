@@ -1,3 +1,5 @@
+import { useLanguage } from '../contexts/LanguageContext';
+
 export interface Character {
   id: string;
   name: string;
@@ -10,6 +12,57 @@ export interface Character {
   avatar: string; // For preview image
 }
 
+// Function to get localized characters
+export function getLocalizedCharacters(t: (key: string) => string): Character[] {
+  return [
+    {
+      id: 'teacher-a-female',
+      name: t('character.teacher-a-female.name'),
+      role: t('character.teacher-a-female.role'),
+      gender: 'female' as const,
+      modelPath: '/models/teacher-female.glb',
+      greeting: t('character.teacher-a-female.greeting'),
+      description: t('character.teacher-a-female.description'),
+      color: '#4F46E5',
+      avatar: '👩‍🏫'
+    },
+    {
+      id: 'teacher-b-male',
+      name: t('character.teacher-b-male.name'),
+      role: t('character.teacher-b-male.role'),
+      gender: 'male' as const,
+      modelPath: '/models/teacher-male.glb',
+      greeting: t('character.teacher-b-male.greeting'),
+      description: t('character.teacher-b-male.description'),
+      color: '#059669',
+      avatar: '👨‍🏫'
+    },
+    {
+      id: 'doctor-female',
+      name: t('character.doctor-female.name'),
+      role: t('character.doctor-female.role'),
+      gender: 'female' as const,
+      modelPath: '/models/doctor-female.glb',
+      greeting: t('character.doctor-female.greeting'),
+      description: t('character.doctor-female.description'),
+      color: '#DC2626',
+      avatar: '👩‍⚕️'
+    },
+    {
+      id: 'counselor-male',
+      name: t('character.counselor-male.name'),
+      role: t('character.counselor-male.role'),
+      gender: 'male' as const,
+      modelPath: '/models/counselor-male.glb',
+      greeting: t('character.counselor-male.greeting'),
+      description: t('character.counselor-male.description'),
+      color: '#7C3AED',
+      avatar: '🧑‍💼'
+    }
+  ];
+}
+
+// Static characters for backward compatibility
 export const AVAILABLE_CHARACTERS: Character[] = [
   {
     id: 'teacher-a-female',

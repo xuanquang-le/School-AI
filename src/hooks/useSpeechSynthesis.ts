@@ -64,7 +64,8 @@ export function useSpeechSynthesis() {
     };
   }, [isSupported]);
 
-  const speak = useCallback((text: string) => {
+  // Hàm phát âm bằng Web Speech API
+  const speakWithWebSpeechAPI = useCallback((text: string, language: 'vi' | 'en') => {
     if (!isSupported) {
       console.warn('Speech synthesis is not supported in this browser');
       return;
@@ -75,14 +76,10 @@ export function useSpeechSynthesis() {
 
     const utterance = new SpeechSynthesisUtterance(text);
     
-    // Phát hiện ngôn ngữ của văn bản
-    const detectedLanguage = detectLanguage(text);
-    console.log(`Detected language: ${detectedLanguage} for text: "${text.substring(0, 50)}..."`);
-    
     // Chọn giọng nói phù hợp
     let selectedVoice: SpeechSynthesisVoice | null = null;
     
-    if (detectedLanguage === 'vi') {
+    if (language === 'vi') {
       // Ưu tiên giọng tiếng Việt
       if (vietnameseVoices.length > 0) {
         // Tìm giọng nữ tiếng Việt trước
@@ -134,7 +131,7 @@ export function useSpeechSynthesis() {
     // Áp dụng giọng nói đã chọn
     if (selectedVoice) {
       utterance.voice = selectedVoice;
-      console.log(`Using voice: ${selectedVoice.name} (${selectedVoice.lang}) for ${detectedLanguage} text`);
+      console.log(`Using voice: ${selectedVoice.name} (${selectedVoice.lang}) for ${language} text`);
     }
 
     // Cài đặt chung
@@ -142,7 +139,7 @@ export function useSpeechSynthesis() {
 
     utterance.onstart = () => {
       setIsSpeaking(true);
-      console.log(`Started speaking in ${detectedLanguage}: "${text.substring(0, 30)}..."`);
+      console.log(`Started speaking in ${language}: "${text.substring(0, 30)}..."`);
     };
 
     utterance.onend = () => {
@@ -162,7 +159,19 @@ export function useSpeechSynthesis() {
     speechSynthesis.speak(utterance);
   }, [isSupported, vietnameseVoices, englishVoices]);
 
+  const speak = useCallback(async (text: string) => {
+    if (!text.trim()) return;
+
+    // Phát hiện ngôn ngữ của văn bản
+    const detectedLanguage = detectLanguage(text);
+    console.log(`Detected language: ${detectedLanguage} for text: "${text.substring(0, 50)}..."`);
+    
+    // Sử dụng Web Speech API
+    speakWithWebSpeechAPI(text, detectedLanguage);
+  }, [speakWithWebSpeechAPI]);
+
   const stop = useCallback(() => {
+    // Dừng Web Speech API
     speechSynthesis.cancel();
     setIsSpeaking(false);
   }, []);

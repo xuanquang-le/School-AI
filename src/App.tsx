@@ -6,7 +6,9 @@ import ChatInterface from './components/ChatInterface';
 import { useSpeechRecognition } from './hooks/useSpeechRecognition';
 import { useSpeechSynthesis } from './hooks/useSpeechSynthesis';
 import { geminiApiService } from './services/geminiApiService';
-import { Character } from './types/Character';
+import { Character, getLocalizedCharacters } from './types/Character';
+import { useLanguage } from './contexts/LanguageContext';
+import LanguageSelector from './components/LanguageSelector';
 import { Heart, Shield, Users, ArrowLeft } from 'lucide-react';
 
 interface Message {
@@ -17,6 +19,7 @@ interface Message {
 }
 
 function App() {
+  const { t } = useLanguage();
   const [selectedCharacter, setSelectedCharacter] = useState<Character | null>(null);
   const [messages, setMessages] = useState<Message[]>([]);
   const [speechEnabled, setSpeechEnabled] = useState(true);
@@ -118,7 +121,15 @@ function App() {
   };
 
   if (!selectedCharacter) {
-    return <CharacterSelection onSelectCharacter={setSelectedCharacter} />;
+    return (
+      <div className="relative">
+        {/* Fixed Language Selector */}
+        <div className="fixed top-4 right-4 z-50">
+          <LanguageSelector />
+        </div>
+        <CharacterSelection onSelectCharacter={setSelectedCharacter} />
+      </div>
+    );
   }
 
   return (
@@ -128,6 +139,11 @@ function App() {
       transition={{ duration: 0.8 }}
       className="min-h-screen bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50"
     >
+      {/* Fixed Language Selector */}
+      <div className="fixed top-4 right-4 z-50">
+        <LanguageSelector />
+      </div>
+      
       {/* Header */}
       <motion.header
         initial={{ opacity: 0, y: -20 }}
@@ -150,20 +166,20 @@ function App() {
                 <Heart className="h-8 w-8 text-white" />
               </div>
               <div>
-                <h1 className="text-2xl font-bold text-gray-900">Virtual Consultation Room</h1>
+                <h1 className="text-2xl font-bold text-gray-900">{t('app.title')}</h1>
                 <p className="text-sm text-gray-600">
-                  💬 Chatting with {selectedCharacter.name} - {selectedCharacter.role}
+                  💬 {t('app.chatting')} {selectedCharacter.name} - {selectedCharacter.role}
                 </p>
               </div>
             </div>
             <div className="flex items-center space-x-6">
               <div className="flex items-center space-x-2 text-sm text-gray-600">
                 <Shield className="h-4 w-4" />
-                <span>Safe & Confidential</span>
+                <span>{t('app.safe')}</span>
               </div>
               <div className="flex items-center space-x-2 text-sm text-gray-600">
                 <Users className="h-4 w-4" />
-                <span>24/7 Available</span>
+                <span>{t('app.available')}</span>
               </div>
               {/* Status indicator */}
               <div className="flex items-center space-x-2 text-sm">
@@ -174,10 +190,10 @@ function App() {
                   'bg-blue-500'
                 }`} />
                 <span className="text-gray-600">
-                  {isProcessing ? 'Processing' :
-                   isSpeaking ? 'Speaking' :
-                   isListening ? 'Listening' :
-                   'Ready'}
+                  {isProcessing ? t('app.status.processing') :
+                   isSpeaking ? t('app.status.speaking') :
+                   isListening ? t('app.status.listening') :
+                   t('app.status.ready')}
                 </span>
               </div>
             </div>

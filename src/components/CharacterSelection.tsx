@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Character, AVAILABLE_CHARACTERS } from '../types/Character';
+import { Character, getLocalizedCharacters } from '../types/Character';
+import { useLanguage } from '/Users/lexuanquang/School-AI/src/contexts/LanguageContext.tsx';
 import { Play, Star, Users, Heart } from 'lucide-react';
 
 interface CharacterSelectionProps {
@@ -8,8 +9,12 @@ interface CharacterSelectionProps {
 }
 
 export default function CharacterSelection({ onSelectCharacter }: CharacterSelectionProps) {
+  const { t } = useLanguage();
   const [selectedCharacter, setSelectedCharacter] = useState<Character | null>(null);
   const [hoveredCharacter, setHoveredCharacter] = useState<string | null>(null);
+  
+  // Get localized characters
+  const characters = getLocalizedCharacters(t);
 
   const handleSelect = (character: Character) => {
     setSelectedCharacter(character);
@@ -52,16 +57,16 @@ export default function CharacterSelection({ onSelectCharacter }: CharacterSelec
           className="text-center mb-12"
         >
           <h1 className="text-5xl font-bold text-white mb-4">
-            Choose Your AI Companion
+            {t('character.selection.title')}
           </h1>
           <p className="text-xl text-purple-200 max-w-2xl mx-auto">
-            Select a virtual assistant to help you learn, grow, and explore new topics in an interactive 3D environment
+            {t('character.selection.subtitle')}
           </p>
         </motion.div>
 
         {/* Character Grid */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8 max-w-6xl mx-auto">
-          {AVAILABLE_CHARACTERS.map((character, index) => (
+          {characters.map((character, index) => (
             <motion.div
               key={character.id}
               initial={{ opacity: 0, y: 50 }}
@@ -96,7 +101,7 @@ export default function CharacterSelection({ onSelectCharacter }: CharacterSelec
                   <p className="text-lg text-purple-200 mb-1">{character.role}</p>
                   <div className="flex items-center justify-center space-x-2 text-sm text-purple-300">
                     <Users className="w-4 h-4" />
-                    <span>{character.gender === 'male' ? 'Male' : 'Female'}</span>
+                    <span>{character.gender === 'male' ? t('character.selection.male') : t('character.selection.female')}</span>
                   </div>
                 </div>
 
@@ -108,7 +113,7 @@ export default function CharacterSelection({ onSelectCharacter }: CharacterSelec
                 {/* Stats/Features */}
                 <div className="space-y-2 mb-6">
                   <div className="flex items-center justify-between text-sm">
-                    <span className="text-gray-300">Experience</span>
+                    <span className="text-gray-300">{t('character.selection.experience')}</span>
                     <div className="flex space-x-1">
                       {[...Array(5)].map((_, i) => (
                         <motion.div
@@ -123,7 +128,7 @@ export default function CharacterSelection({ onSelectCharacter }: CharacterSelec
                     </div>
                   </div>
                   <div className="flex items-center justify-between text-sm">
-                    <span className="text-gray-300">Friendliness</span>
+                    <span className="text-gray-300">{t('character.selection.friendliness')}</span>
                     <div className="flex space-x-1">
                       {[...Array(5)].map((_, i) => (
                         <motion.div
@@ -156,12 +161,12 @@ export default function CharacterSelection({ onSelectCharacter }: CharacterSelec
                         transition={{ duration: 1, repeat: Infinity, ease: "linear" }}
                         className="w-5 h-5 border-2 border-black border-t-transparent rounded-full"
                       />
-                      <span>Loading...</span>
+                      <span>{t('character.selection.loading')}</span>
                     </>
                   ) : (
                     <>
                       <Play className="w-5 h-5" />
-                      <span>Select</span>
+                      <span>{t('character.selection.select')}</span>
                     </>
                   )}
                 </motion.button>
@@ -175,7 +180,7 @@ export default function CharacterSelection({ onSelectCharacter }: CharacterSelec
                       exit={{ opacity: 0, scale: 0.8 }}
                       className="absolute -top-2 -right-2 bg-yellow-400 text-black px-3 py-1 rounded-full text-sm font-semibold"
                     >
-                      Click to select!
+                      {t('character.selection.clickToSelect')}
                     </motion.div>
                   )}
                 </AnimatePresence>
@@ -222,7 +227,7 @@ export default function CharacterSelection({ onSelectCharacter }: CharacterSelec
           className="text-center mt-12"
         >
           <p className="text-purple-200">
-            Each character has unique personality traits and specialized knowledge areas
+            {t('character.selection.footer')}
           </p>
         </motion.div>
       </div>

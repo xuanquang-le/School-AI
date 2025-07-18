@@ -1,9 +1,10 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
+import { useLanguage } from '../contexts/LanguageContext';
 import { Send, Mic, MicOff, Volume2, VolumeX, Pause } from 'lucide-react';
 
 // Typing indicator component
-const TypingIndicator = () => {
+const TypingIndicator = ({ t }: { t: (key: string) => string }) => {
   return (
     <motion.div
       initial={{ opacity: 0, y: 20 }}
@@ -13,7 +14,7 @@ const TypingIndicator = () => {
     >
       <div className="max-w-xs lg:max-w-md px-4 py-3 rounded-2xl bg-gray-100 text-gray-900 shadow-sm">
         <div className="flex items-center space-x-2">
-          <span className="text-sm text-gray-600">AI is thinking</span>
+          <span className="text-sm text-gray-600">{t('chat.ai.thinking')}</span>
           <div className="flex space-x-1">
             <motion.div
               className="w-2 h-2 bg-blue-500 rounded-full"
@@ -86,6 +87,7 @@ export default function ChatInterface({
   transcript = "",
   onSpeakMessage
 }: ChatInterfaceProps) {
+  const { t } = useLanguage();
   const [inputText, setInputText] = useState('');
   const [speakingMessageId, setSpeakingMessageId] = useState<string | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
@@ -143,9 +145,9 @@ export default function ChatInterface({
       {/* Header */}
       <div className="flex items-center justify-between p-6 border-b border-gray-200">
         <div>
-          <h2 className="text-xl font-semibold text-gray-900">💬 Chat with AI</h2>
+          <h2 className="text-xl font-semibold text-gray-900">{t('chat.title')}</h2>
           <p className="text-sm text-gray-500">
-            {isProcessing ? 'Processing...' : isSpeaking ? 'Speaking...' : isListening ? 'Listening...' : 'Ready to help'}
+            {isProcessing ? t('chat.processing') : isSpeaking ? t('chat.speaking') : isListening ? t('chat.listening') : t('chat.ready')}
           </p>
         </div>
         {/* Single audio toggle button */}
@@ -155,7 +157,7 @@ export default function ChatInterface({
             ? 'bg-green-100 text-green-600 hover:bg-green-200'
             : 'bg-gray-100 text-gray-400 hover:bg-gray-200'
             }`}
-          title={speechEnabled ? 'Tắt âm thanh' : 'Bật âm thanh'}
+          title={speechEnabled ? t('chat.audio.on') : t('chat.audio.off')}
         >
           {speechEnabled ? <Volume2 size={20} /> : <VolumeX size={20} />}
         </button>
@@ -201,7 +203,7 @@ export default function ChatInterface({
                             ? 'bg-red-100 hover:bg-red-200'
                             : 'hover:bg-gray-200'
                           }`}
-                        title={speakingMessageId === message.id ? 'Dừng phát âm' : 'Nghe tin nhắn này'}
+                        title={speakingMessageId === message.id ? t('chat.speak.stop') : t('chat.speak.play')}
                       >
                         {speakingMessageId === message.id ? (
                           <Pause size={14} className="text-red-600" />
@@ -216,7 +218,7 @@ export default function ChatInterface({
             ))}
             {/* Typing indicator when AI is processing */}
             {isProcessing && (
-              <TypingIndicator />
+              <TypingIndicator t={t} />
             )}
           </AnimatePresence>
           <div ref={messagesEndRef} />
@@ -232,10 +234,10 @@ export default function ChatInterface({
               value={inputText}
               placeholder={
                 isListening
-                  ? `🎤 Đang nghe... ${transcript || ''}`
+                  ? `${t('chat.placeholder.listening')}${transcript || ''}`
                   : isProcessing
-                    ? "⏳ Đang chờ AI trả lời..."
-                    : "💬 Nhập tin nhắn hoặc dùng voice..."
+                    ? t('chat.placeholder.processing')
+                    : t('chat.placeholder.default')
               }
               onChange={(e) => setInputText(e.target.value)}
               className="w-full px-4 py-3 pr-12 bg-gray-50 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent disabled:bg-gray-100 disabled:text-gray-500 transition-all duration-200"
@@ -289,7 +291,7 @@ export default function ChatInterface({
                   transition={{ duration: 1, repeat: Infinity }}
                   className="w-2 h-2 bg-red-500 rounded-full"
                 />
-                <span>🎤 Đang nghe giọng nói của bạn...</span>
+                <span>{t('chat.status.listening')}</span>
               </>
             )}
             {isProcessing && (
@@ -299,7 +301,7 @@ export default function ChatInterface({
                   transition={{ duration: 1, repeat: Infinity, ease: "linear" }}
                   className="w-4 h-4 border-2 border-blue-500 border-t-transparent rounded-full"
                 />
-                <span>🤖 AI đang suy nghĩ...</span>
+                <span>{t('chat.status.processing')}</span>
               </>
             )}
             {isSpeaking && (
@@ -309,7 +311,7 @@ export default function ChatInterface({
                   transition={{ duration: 0.5, repeat: Infinity }}
                   className="w-2 h-2 bg-green-500 rounded-full"
                 />
-                <span>🔊 AI đang nói...</span>
+                <span>{t('chat.status.speaking')}</span>
               </>
             )}
           </motion.div>
