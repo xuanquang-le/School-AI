@@ -2,6 +2,11 @@ import React, { createContext, useContext, useState, useEffect } from 'react';
 
 export type Language = 'vi' | 'en';
 
+// Define the translation keys type
+type TranslationKeys = {
+  [key: string]: string;
+};
+
 interface LanguageContextType {
   language: Language;
   setLanguage: (lang: Language) => void;
@@ -11,7 +16,7 @@ interface LanguageContextType {
 const LanguageContext = createContext<LanguageContextType | undefined>(undefined);
 
 // Translations object
-const translations = {
+const translations: Record<Language, TranslationKeys> = {
   vi: {
     // Character Selection
     'character.selection.title': 'Chọn Trợ Lý AI Của Bạn',
