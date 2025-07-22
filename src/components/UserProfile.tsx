@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { useAuth } from '../contexts/AuthContext';
+import { useAuth } from '../contexts/Authcontext';
 import { LogOut, User, Settings, ChevronDown } from 'lucide-react';
 
 export default function UserProfile() {

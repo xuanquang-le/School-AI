@@ -1,6 +1,6 @@
 import React, { useState, useCallback, useEffect } from 'react';
 import { motion } from 'framer-motion';
-import { useAuth } from './contexts/AuthContext';
+import { useAuth } from './contexts/Authcontext';
 import CharacterSelection from './components/CharacterSelection';
 import AuthModal from './components/AuthModal';
 import UserProfile from './components/UserProfile';

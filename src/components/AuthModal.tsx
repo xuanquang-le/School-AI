@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useLanguage } from '../contexts/LanguageContext';
-import { useAuth } from '../contexts/AuthContext';
+import { useAuth } from '../contexts/Authcontext';
 import { X, Mail, Lock, User, Eye, EyeOff, ArrowLeft } from 'lucide-react';
 
 interface AuthModalProps {
