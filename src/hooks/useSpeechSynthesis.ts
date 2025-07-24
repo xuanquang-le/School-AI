@@ -91,7 +91,7 @@ export function useSpeechSynthesis() {
         ) || vietnameseVoices[0];
         
         utterance.lang = 'vi-VN';
-        utterance.rate = 0.85; // Chậm hơn một chút cho tiếng Việt
+        utterance.rate = 1.8; // Chậm hơn một chút cho tiếng Việt
         utterance.pitch = 1.1; // Cao hơn một chút
       } else {
         // Fallback: sử dụng giọng tiếng Anh với cài đặt cho tiếng Việt

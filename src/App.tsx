@@ -13,6 +13,7 @@ import { Character, getLocalizedCharacters } from './types/Character';
 import { useLanguage } from './contexts/LanguageContext';
 import LanguageSelector from './components/LanguageSelector';
 import { Heart, Shield, Users, ArrowLeft, LogIn } from 'lucide-react';
+import TextToSpeechExample from './.local/example';
 
 interface Message {
   id: string;
@@ -235,6 +236,8 @@ function App() {
 
       {/* Main Content */}
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        {/* tesst */}
+        {/* <TextToSpeechExample /> */}
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 h-[calc(100vh-200px)]">
           {/* Enhanced 3D Room */}
           <motion.div
