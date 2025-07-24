@@ -1,14 +1,30 @@
-import { useState, useCallback, useEffect } from 'react';
+interface GeminiResponse {
+  candidates: Array<{
+    content: {
+      parts: Array<{
+        text: string;
+      }>;
+    };
+  }>;
+}
 
-// Hàm phát hiện ngôn ngữ của văn bản
+interface GeminiRequestBody {
+  contents: Array<{
+    parts: Array<{
+      text: string;
+    }>;
+  }>;
+}
+
+// Detect language of input text
 function detectLanguage(text: string): 'vi' | 'en' {
-  // Ký tự tiếng Việt có dấu
+  // Vietnamese characters pattern
   const vietnamesePattern = /[àáạảãâầấậẩẫăằắặẳẵèéẹẻẽêềếệểễìíịỉĩòóọỏõôồốộổỗơờớợởỡùúụủũưừứựửữỳýỵỷỹđ]/i;
   
-  // Từ tiếng Việt phổ biến
-  const vietnameseWords = /\b(tôi|bạn|là|của|và|có|không|được|này|đó|với|trong|cho|về|từ|một|hai|ba|bốn|năm|sáu|bảy|tám|chín|mười|xin|chào|cảm|ơn|làm|gì|như|thế|nào|khi|nào|ở|đâu|ai|sao|tại|vì|nên|phải|cần|muốn|thích|yêu|ghét|đẹp|xấu|tốt|lớn|nhỏ|cao|thấp|nhanh|chậm|mới|cũ|trẻ|già|khỏe|ốm|vui|buồn|hạnh|phúc|lo|lắng|stress|căng|thẳng|áp|lực|học|tập|làm|việc|gia|đình|bạn|bè|yêu|thương|tình|cảm|tâm|lý|sức|khỏe|bệnh|tật|thuốc|bác|sĩ|thầy|cô|giáo|viên|học|sinh|sinh|viên|trường|lớp|môn|bài|kiểm|tra|thi|cử|điểm|số|kết|quả|thành|tích|thành|công|thất|bại|khó|khăn|vấn|đề|giải|pháp|cách|thức|phương|pháp)\b/gi;
+  // Common Vietnamese words
+  const vietnameseWords = /\b(tôi|bạn|là|của|và|có|không|được|này|đó|với|trong|cho|về|từ|một|hai|ba|bốn|năm|sáu|bảy|tám|chín|mười|xin|chào|cảm|ơn|làm|gì|như|thế|nào|khi|nào|ở|đâu|ai|sao|tại|vì|nên|phải|cần|muốn|thích|yêu|ghét|đẹp|xấu|tốt|xấu|lớn|nhỏ|cao|thấp|nhanh|chậm|mới|cũ|trẻ|già|khỏe|ốm|vui|buồn|hạnh|phúc|lo|lắng|stress|căng|thẳng|áp|lực|học|tập|làm|việc|gia|đình|bạn|bè|yêu|thương|tình|cảm|cảm|xúc|tâm|lý|sức|khỏe|bệnh|tật|thuốc|bác|sĩ|thầy|cô|giáo|viên|học|sinh|sinh|viên|trường|lớp|môn|bài|kiểm|tra|thi|cử|điểm|số|kết|quả|thành|tích|thành|công|thất|bại|khó|khăn|vấn|đề|giải|pháp|cách|thức|phương|pháp)\b/gi;
   
-  // Kiểm tra ký tự hoặc từ tiếng Việt
+  // Check for Vietnamese characters or words
   if (vietnamesePattern.test(text) || vietnameseWords.test(text)) {
     return 'vi';
   }
@@ -16,176 +32,167 @@ function detectLanguage(text: string): 'vi' | 'en' {
   return 'en';
 }
 
-export function useSpeechSynthesis() {
-  const [isSpeaking, setIsSpeaking] = useState(false);
-  const [isSupported] = useState('speechSynthesis' in window);
-  const [voices, setVoices] = useState<SpeechSynthesisVoice[]>([]);
-  const [vietnameseVoices, setVietnameseVoices] = useState<SpeechSynthesisVoice[]>([]);
-  const [englishVoices, setEnglishVoices] = useState<SpeechSynthesisVoice[]>([]);
+export class GeminiApiService {
+  private apiKey: string;
+  private apiUrl: string;
+  private maxRetries: number = 3;
+  private baseDelay: number = 1000; // 1 second
 
-  // Load available voices
-  useEffect(() => {
-    if (!isSupported) return;
+  constructor() {
+    // In Vite, environment variables are injected at build time
+    this.apiKey = import.meta.env?.VITE_GEMINI_API_KEY || "";
+    this.apiUrl =
+      "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent";
 
-    const loadVoices = () => {
-      const availableVoices = speechSynthesis.getVoices();
-      setVoices(availableVoices);
-      
-      // Phân loại giọng nói theo ngôn ngữ
-      const viVoices = availableVoices.filter(voice => 
-        voice.lang.includes('vi') || 
-        voice.lang.includes('VI') ||
-        voice.name.toLowerCase().includes('vietnamese') ||
-        voice.name.toLowerCase().includes('vietnam')
+    if (!this.apiKey) {
+      console.warn(
+        "VITE_GEMINI_API_KEY not found. Please add it to your .env file and restart the development server."
       );
-      
-      const enVoices = availableVoices.filter(voice => 
-        voice.lang.includes('en') || 
-        voice.lang.includes('EN') ||
-        voice.name.toLowerCase().includes('english') ||
-        voice.lang.startsWith('en-')
-      );
-      
-      setVietnameseVoices(viVoices);
-      setEnglishVoices(enVoices);
-      
-      console.log('Available Vietnamese voices:', viVoices.map(v => `${v.name} (${v.lang})`));
-      console.log('Available English voices:', enVoices.map(v => `${v.name} (${v.lang})`));
-    };
-
-    // Load voices immediately if available
-    loadVoices();
-
-    // Some browsers load voices asynchronously
-    speechSynthesis.onvoiceschanged = loadVoices;
-
-    return () => {
-      speechSynthesis.onvoiceschanged = null;
-    };
-  }, [isSupported]);
-
-  // Hàm phát âm bằng Web Speech API
-  const speakWithWebSpeechAPI = useCallback((text: string, language: 'vi' | 'en') => {
-    if (!isSupported) {
-      console.warn('Speech synthesis is not supported in this browser');
-      return;
     }
+  }
 
-    // Cancel any ongoing speech
-    speechSynthesis.cancel();
+  private async delay(ms: number): Promise<void> {
+    return new Promise(resolve => setTimeout(resolve, ms));
+  }
 
-    const utterance = new SpeechSynthesisUtterance(text);
-    
-    // Chọn giọng nói phù hợp
-    let selectedVoice: SpeechSynthesisVoice | null = null;
-    
-    if (language === 'vi') {
-      // Ưu tiên giọng tiếng Việt
-      if (vietnameseVoices.length > 0) {
-        // Tìm giọng nữ tiếng Việt trước
-        selectedVoice = vietnameseVoices.find(voice => 
-          voice.name.toLowerCase().includes('female') ||
-          voice.name.toLowerCase().includes('woman') ||
-          voice.name.toLowerCase().includes('linh') ||
-          voice.name.toLowerCase().includes('mai')
-        ) || vietnameseVoices[0];
+  private async makeApiRequest(requestBody: GeminiRequestBody, attempt: number = 1): Promise<GeminiResponse> {
+    try {
+      const response = await fetch(`${this.apiUrl}?key=${this.apiKey}`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(requestBody),
+      });
+
+      if (!response.ok) {
+        // Check if it's a retryable error (503, 429, or 5xx server errors)
+        const isRetryable = response.status === 503 || 
+                           response.status === 429 || 
+                           (response.status >= 500 && response.status < 600);
         
-        utterance.lang = 'vi-VN';
-        utterance.rate = 0.85; // Chậm hơn một chút cho tiếng Việt
-        utterance.pitch = 1.1; // Cao hơn một chút
-      } else {
-        // Fallback: sử dụng giọng tiếng Anh với cài đặt cho tiếng Việt
-        console.warn('No Vietnamese voice found, using English voice for Vietnamese text');
-        selectedVoice = englishVoices.find(voice => 
-          voice.name.toLowerCase().includes('female')
-        ) || englishVoices[0] || null;
+        if (isRetryable && attempt < this.maxRetries) {
+          // Calculate exponential backoff delay
+          const delayMs = this.baseDelay * Math.pow(2, attempt - 1);
+          console.warn(`Gemini API error ${response.status}, retrying in ${delayMs}ms (attempt ${attempt}/${this.maxRetries})`);
+          
+          await this.delay(delayMs);
+          return this.makeApiRequest(requestBody, attempt + 1);
+        }
         
-        utterance.lang = 'vi-VN';
-        utterance.rate = 0.7; // Chậm hơn để phát âm tiếng Việt rõ hơn
-        utterance.pitch = 1.0;
+        throw new Error(
+          `Gemini API error: ${response.status} ${response.statusText}`
+        );
       }
-    } else {
-      // Sử dụng giọng tiếng Anh
-      if (englishVoices.length > 0) {
-        // Ưu tiên giọng nữ tiếng Anh
-        selectedVoice = englishVoices.find(voice => 
-          voice.name.toLowerCase().includes('female') ||
-          voice.name.toLowerCase().includes('woman') ||
-          voice.name.toLowerCase().includes('samantha') ||
-          voice.name.toLowerCase().includes('susan') ||
-          voice.name.toLowerCase().includes('karen')
-        ) || englishVoices[0];
+
+      return await response.json();
+    } catch (error) {
+      // For network errors, also retry if we haven't exceeded max attempts
+      if (attempt < this.maxRetries && error instanceof TypeError) {
+        const delayMs = this.baseDelay * Math.pow(2, attempt - 1);
+        console.warn(`Network error, retrying in ${delayMs}ms (attempt ${attempt}/${this.maxRetries})`);
         
-        utterance.lang = 'en-US';
-        utterance.rate = 0.9; // Tốc độ bình thường cho tiếng Anh
-        utterance.pitch = 1.0;
+        await this.delay(delayMs);
+        return this.makeApiRequest(requestBody, attempt + 1);
+      }
+      
+      throw error;
+    }
+  }
+  private cleanResponse(text: string): string {
+    // Loại bỏ dấu ** và các ký tự markdown không mong muốn
+    return text.replace(/\*\*/g, '').trim();
+  }
+  async getCounselingResponse(message: string): Promise<string> {
+    try {
+      if (!this.apiKey) {
+        throw new Error("Gemini API key not configured");
+      }
+
+      // Detect the language of the input message
+      const inputLanguage = detectLanguage(message);
+      
+      let counselingPrompt: string;
+      
+      if (inputLanguage === 'vi') {
+        // Vietnamese prompt
+        counselingPrompt = `Bạn là một chuyên gia tư vấn tâm lý chuyên nghiệp và thân thiện, đặc biệt phù hợp với học sinh và sinh viên. Hãy trả lời tin nhắn sau của người dùng một cách ấm áp, hỗ trợ và có ích. Câu trả lời nên:
+        - Thể hiện sự đồng cảm và hiểu biết
+        - Cung cấp lời khuyên thực tế và hữu ích phù hợp với lứa tuổi học sinh
+        - Khuyến khích người dùng một cách tích cực
+        - Giữ tông giọng chuyên nghiệp nhưng gần gũi, như một người thầy/cô hiểu biết
+        - Sử dụng ngôn ngữ đơn giản, dễ hiểu
+        - Trả lời bằng tiếng Việt
+
+        Tin nhắn của học sinh: "${message}"`;
       } else {
-        // Fallback: sử dụng giọng mặc định
-        console.warn('No English voice found, using default voice');
-        utterance.lang = 'en-US';
-        utterance.rate = 0.9;
-        utterance.pitch = 1.0;
+        // English prompt
+        counselingPrompt = `You are a professional and friendly mental health counselor, especially suitable for students and young learners. Please respond to the following user message in a warm, supportive, and helpful manner. Your response should:
+        - Show empathy and understanding
+        - Provide practical and useful advice suitable for students
+        - Encourage the user positively
+        - Maintain a professional but approachable tone, like a caring teacher
+        - Use simple, easy-to-understand language
+        - Respond in English
+
+        Student's message: "${message}"`;
+      }
+
+      const requestBody: GeminiRequestBody = {
+        contents: [
+          {
+            parts: [
+              {
+                text: counselingPrompt,
+              },
+            ],
+          },
+        ],
+      };
+
+      const data = await this.makeApiRequest(requestBody);
+
+      if (data.candidates && data.candidates.length > 0) {
+        const responseText = data.candidates[0].content.parts[0]?.text;
+        if (responseText) {
+          // return responseText.trim();
+          // xu li loaij bo dau ** va cac ky tu markdown
+          return this.cleanResponse(responseText);
+        }
+      }
+
+      throw new Error("No valid response from Gemini API");
+    } catch (error) {
+      console.error("Error calling Gemini API:", error);
+
+      // Fallback responses based on detected language
+      const inputLanguage = detectLanguage(message);
+      
+      if (inputLanguage === 'vi') {
+        const fallbackResponses = [
+          "Tôi hiểu bạn đang gặp khó khăn. Mặc dù tôi không thể kết nối với dịch vụ AI ngay lúc này, nhưng tôi muốn bạn biết rằng cảm xúc của bạn hoàn toàn bình thường. Hãy thử thở sâu và nhớ rằng mọi khó khăn đều sẽ qua đi.",
+          "Cảm ơn bạn đã chia sẻ với tôi. Tôi đang gặp chút vấn đề kỹ thuật, nhưng tôi muốn khuyến khích bạn tiếp tục tìm kiếm sự hỗ trợ. Bạn đã rất dũng cảm khi tìm đến sự giúp đỡ.",
+          "Mặc dù có chút trục trặc kỹ thuật, tôi vẫn muốn bạn biết rằng những gì bạn đang cảm thấy là quan trọng. Hãy chăm sóc bản thân và nhớ rằng bạn không đơn độc trong hành trình này.",
+          "Tôi thấy bạn đang cần sự hỗ trợ. Dù có vấn đề kỹ thuật, tôi vẫn muốn nhắc bạn rằng việc học tập và phát triển bản thân là một quá trình, hãy kiên nhẫn với chính mình.",
+          "Cảm ơn bạn đã tin tưởng chia sẻ. Mặc dù hệ thống đang gặp sự cố nhỏ, nhưng tôi muốn bạn biết rằng mọi thử thách đều là cơ hội để bạn trưởng thành hơn."
+        ];
+        // return fallbackResponses[Math.floor(Math.random() * fallbackResponses.length)];
+        // xu li loaij bo dau ** va cac ky tu markdown
+        return this.cleanResponse(fallbackResponses[Math.floor(Math.random() * fallbackResponses.length)]);
+      } else {
+        const fallbackResponses = [
+          "I understand you're going through a difficult time. While I'm experiencing some technical issues right now, I want you to know that your feelings are completely valid. Please try taking some deep breaths and remember that every challenge will pass.",
+          "Thank you for sharing with me. I'm having some technical difficulties at the moment, but I want to encourage you to continue seeking support. You've shown real courage by reaching out for help.",
+          "Despite some technical issues, I want you to know that what you're feeling is important. Please take care of yourself and remember that you're not alone in this journey.",
+          "I can see you need support right now. Even with these technical problems, I want to remind you that learning and personal growth is a process - please be patient with yourself.",
+          "Thank you for trusting me with your thoughts. Although the system is having minor issues, I want you to know that every challenge is an opportunity for you to grow stronger."
+        ];
+        // return fallbackResponses[Math.floor(Math.random() * fallbackResponses.length)];
+        // xu li loaij bo dau ** va cac ky tu markdown
+        return this.cleanResponse(fallbackResponses[Math.floor(Math.random() * fallbackResponses.length)]);
       }
     }
-
-    // Áp dụng giọng nói đã chọn
-    if (selectedVoice) {
-      utterance.voice = selectedVoice;
-      console.log(`Using voice: ${selectedVoice.name} (${selectedVoice.lang}) for ${language} text`);
-    }
-
-    // Cài đặt chung
-    utterance.volume = 0.8;
-
-    utterance.onstart = () => {
-      setIsSpeaking(true);
-      console.log(`Started speaking in ${language}: "${text.substring(0, 30)}..."`);
-    };
-
-    utterance.onend = () => {
-      setIsSpeaking(false);
-      console.log('Finished speaking');
-    };
-
-    utterance.onerror = (event) => {
-      if (event.error === 'interrupted') {
-        console.info('Speech synthesis interrupted (expected behavior)');
-      } else {
-        console.error('Speech synthesis error:', event);
-      }
-      setIsSpeaking(false);
-    };
-
-    speechSynthesis.speak(utterance);
-  }, [isSupported, vietnameseVoices, englishVoices]);
-
-  const speak = useCallback(async (text: string) => {
-    if (!text.trim()) return;
-
-    // Phát hiện ngôn ngữ của văn bản
-    const detectedLanguage = detectLanguage(text);
-    console.log(`Detected language: ${detectedLanguage} for text: "${text.substring(0, 50)}..."`);
-    
-    // Sử dụng Web Speech API
-    speakWithWebSpeechAPI(text, detectedLanguage);
-  }, [speakWithWebSpeechAPI]);
-
-  const stop = useCallback(() => {
-    // Dừng Web Speech API
-    speechSynthesis.cancel();
-    setIsSpeaking(false);
-  }, []);
-
-  return {
-    speak,
-    stop,
-    isSpeaking,
-    isSupported,
-    voices,
-    vietnameseVoices,
-    englishVoices,
-    // Thêm thông tin hữu ích
-    hasVietnameseVoice: vietnameseVoices.length > 0,
-    hasEnglishVoice: englishVoices.length > 0
-  };
+  }
 }
+
+export const geminiApiService = new GeminiApiService();
