@@ -1,4 +1,4 @@
-import { useState, useCallback, useEffect } from 'react';
+import { useState, useCallback, useEffect, useRef } from 'react';
 
 // Hàm phát hiện ngôn ngữ của văn bản
 function detectLanguage(text: string): 'vi' | 'en' {
@@ -22,6 +22,25 @@ export function useSpeechSynthesis() {
   const [voices, setVoices] = useState<SpeechSynthesisVoice[]>([]);
   const [vietnameseVoices, setVietnameseVoices] = useState<SpeechSynthesisVoice[]>([]);
   const [englishVoices, setEnglishVoices] = useState<SpeechSynthesisVoice[]>([]);
+  
+  // Add new states for FPT TTS
+  const [audioUrl, setAudioUrl] = useState('');
+  const [isAudioReady, setIsAudioReady] = useState(false);
+  const audioRef = useRef<HTMLAudioElement | null>(null);
+
+  // Define event handlers using useCallback
+  const handleAudioEnded = useCallback(() => {
+    setIsSpeaking(false);
+    setIsAudioReady(false);
+    setAudioUrl('');
+  }, []);
+
+  const handleAudioError = useCallback((e: Event) => {
+    console.error('Audio playback error:', e);
+    setIsSpeaking(false);
+    setIsAudioReady(false);
+    setAudioUrl('');
+  }, []);
 
   // Load available voices
   useEffect(() => {
@@ -64,6 +83,10 @@ export function useSpeechSynthesis() {
     };
   }, [isSupported]);
 
+  //TODO Hàm phát âm bằng FPT API
+
+  //TODO End FPT API
+  
   // Hàm phát âm bằng Web Speech API
   const speakWithWebSpeechAPI = useCallback((text: string, language: 'vi' | 'en') => {
     if (!isSupported) {
@@ -159,22 +182,114 @@ export function useSpeechSynthesis() {
     speechSynthesis.speak(utterance);
   }, [isSupported, vietnameseVoices, englishVoices]);
 
+  // Add FPT TTS functionality
+  const waitForAudio = async () => {
+    setIsAudioReady(false);
+    await new Promise(resolve => setTimeout(resolve, 3000));
+    setIsAudioReady(true);
+
+    if (audioRef.current) {
+      audioRef.current.load();
+      audioRef.current.play().catch(err => {
+        console.error('Error playing audio:', err);
+      });
+    }
+  };
+
+  const speakWithFPTAPI = async (text: string) => {
+    // Stop current audio if playing
+    if (audioRef.current) {
+      audioRef.current.pause();
+      audioRef.current.currentTime = 0;
+    }
+
+    setIsSpeaking(true);
+    try {
+      const response = await fetch('https://api.fpt.ai/hmi/tts/v5', {
+        method: 'POST',
+        headers: {
+          'api-key': 'QHiS4PvFh28tv2I5w0pk76C1hzelgvzP',
+          'speed': '',
+          'voice': 'thuminh',
+          'Content-Type': 'text/plain'
+        },
+        body: text
+      });
+
+      const result = await response.text();
+      try {
+        const jsonResult = JSON.parse(result);
+        if (jsonResult.async) {
+          setAudioUrl(jsonResult.async);
+          await waitForAudio();
+        }
+      } catch (e) {
+        console.error('Error parsing FPT API response:', e);
+        setIsSpeaking(false);
+      }
+    } catch (err) {
+      console.error('Error calling FPT TTS API:', err);
+      setIsSpeaking(false);
+    }
+  };
+
   const speak = useCallback(async (text: string) => {
     if (!text.trim()) return;
 
-    // Phát hiện ngôn ngữ của văn bản
+    // Detect language
     const detectedLanguage = detectLanguage(text);
     console.log(`Detected language: ${detectedLanguage} for text: "${text.substring(0, 50)}..."`);
     
-    // Sử dụng Web Speech API
-    speakWithWebSpeechAPI(text, detectedLanguage);
+    // Use FPT API for Vietnamese, Web Speech API for English
+    if (detectedLanguage === 'vi') {
+      await speakWithFPTAPI(text);
+    } else {
+      speakWithWebSpeechAPI(text, detectedLanguage);
+    }
   }, [speakWithWebSpeechAPI]);
 
   const stop = useCallback(() => {
-    // Dừng Web Speech API
+    // Stop Web Speech API
     speechSynthesis.cancel();
+    
+    // Stop FPT audio
+    if (audioRef.current) {
+      audioRef.current.pause();
+      audioRef.current.currentTime = 0;
+    }
+    
     setIsSpeaking(false);
+    setAudioUrl('');
+    setIsAudioReady(false);
   }, []);
+
+  // Add audio element to DOM and manage event listeners
+  useEffect(() => {
+    if (!audioRef.current) {
+      audioRef.current = new Audio();
+      
+      // Add event listeners
+      audioRef.current.addEventListener('ended', handleAudioEnded);
+      audioRef.current.addEventListener('error', handleAudioError);
+    }
+    
+    return () => {
+      if (audioRef.current) {
+        // Remove event listeners
+        audioRef.current.removeEventListener('ended', handleAudioEnded);
+        audioRef.current.removeEventListener('error', handleAudioError);
+        audioRef.current.pause();
+        audioRef.current = null;
+      }
+    };
+  }, [handleAudioEnded, handleAudioError]);
+
+  // Update audio source when URL changes
+  useEffect(() => {
+    if (audioRef.current && audioUrl) {
+      audioRef.current.src = audioUrl;
+    }
+  }, [audioUrl]);
 
   return {
     speak,
@@ -184,8 +299,10 @@ export function useSpeechSynthesis() {
     voices,
     vietnameseVoices,
     englishVoices,
-    // Thêm thông tin hữu ích
     hasVietnameseVoice: vietnameseVoices.length > 0,
-    hasEnglishVoice: englishVoices.length > 0
+    hasEnglishVoice: englishVoices.length > 0,
+    // Add new properties
+    audioUrl,
+    isAudioReady
   };
 }
