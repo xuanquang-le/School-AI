@@ -208,7 +208,9 @@ export function useSpeechSynthesis() {
       const response = await fetch('https://api.fpt.ai/hmi/tts/v5', {
         method: 'POST',
         headers: {
-          'api-key': 'QHiS4PvFh28tv2I5w0pk76C1hzelgvzP',
+          // 'api-key': 'QHiS4PvFh28tv2I5w0pk76C1hzelgvzP', quang apiKey
+         // 'api-key': 'HS91iEC9xH0A0kZxnfwYPrplq8JcqALu',//hdu api
+          'api-key': 'xren6jFm7Sz0bjONia6rEf5CemyWOU3j', // FPT AI API Key
           'speed': '',
           'voice': 'thuminh',
           'Content-Type': 'text/plain'
