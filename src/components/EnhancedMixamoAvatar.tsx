@@ -4,8 +4,8 @@ import { useGLTF } from '@react-three/drei';
 import * as THREE from 'three';
 import { Character, AVAILABLE_CHARACTERS } from '../types/Character';
 
-// Enhanced Fallback Avatar with more realistic proportions and animations
-function EnhancedFallbackAvatar({ 
+// Game-style Counselor Avatar với body language đơn giản
+function GameStyleCounselorAvatar({ 
   position = [0, 0, 0], 
   scale = 1, 
   isListening = false, 
@@ -20,201 +20,364 @@ function EnhancedFallbackAvatar({
 }) {
   const meshRef = useRef<THREE.Group>(null);
   const headRef = useRef<THREE.Mesh>(null);
-  const leftArmRef = useRef<THREE.Mesh>(null);
-  const rightArmRef = useRef<THREE.Mesh>(null);
-  const soundWaveRef = useRef<THREE.Mesh>(null);
-  const [animationPhase, setAnimationPhase] = useState(0);
+  const leftArmRef = useRef<THREE.Group>(null);
+  const rightArmRef = useRef<THREE.Group>(null);
+  const bodyRef = useRef<THREE.Mesh>(null);
   const eyeLeftRef = useRef<THREE.Mesh>(null);
   const eyeRightRef = useRef<THREE.Mesh>(null);
-  const [listeningPulseScale, setListeningPulseScale] = useState(1);
-  const [speakingWaveScale, setSpeakingWaveScale] = useState(1);
+  const mouthRef = useRef<THREE.Mesh>(null);
+  const leftHandRef = useRef<THREE.Mesh>(null);
+  const rightHandRef = useRef<THREE.Mesh>(null);
+  
+  const [blinkTimer, setBlinkTimer] = useState(0);
+  const [isBlinking, setIsBlinking] = useState(false);
+  const [currentTime, setCurrentTime] = useState(0);
 
   useFrame((state) => {
+    const time = state.clock.elapsedTime;
+    setCurrentTime(time);
+    
     if (meshRef.current) {
-      // Base floating animation
-      meshRef.current.position.y = position[1] + Math.sin(state.clock.elapsedTime * 0.5) * 0.05;
-      
+      // Gentle floating - game style nhẹ nhàng
+      meshRef.current.position.y = position[1] + Math.sin(time * 1.5) * 0.04;
       // Subtle body sway
-      meshRef.current.rotation.z = Math.sin(state.clock.elapsedTime * 0.3) * 0.02;
+      meshRef.current.rotation.z = Math.sin(time * 0.6) * 0.008;
     }
 
+    // Head body language - thể hiện cảm xúc
     if (headRef.current) {
       if (isSpeaking) {
-        // Head nodding while speaking
-        headRef.current.rotation.x = Math.sin(state.clock.elapsedTime * 4) * 0.1;
-        headRef.current.rotation.y = Math.sin(state.clock.elapsedTime * 2) * 0.05;
+        // Engaging speaking gestures - gật đầu khi nói
+        headRef.current.rotation.x = Math.sin(time * 5) * 0.05;
+        headRef.current.rotation.y = Math.sin(time * 2.5) * 0.08;
+        headRef.current.rotation.z = Math.sin(time * 3) * 0.03;
+        // Slight head movement for emphasis
+        headRef.current.position.y = 1.5 + Math.sin(time * 6) * 0.015;
       } else if (isListening) {
-        // Attentive head tilt
-        headRef.current.rotation.y = Math.sin(state.clock.elapsedTime * 1.5) * 0.1;
-        headRef.current.rotation.x = Math.sin(state.clock.elapsedTime * 2) * 0.05;
+        // Attentive listening - nghiêng đầu quan tâm
+        headRef.current.rotation.x = -0.04 + Math.sin(time * 1.2) * 0.02;
+        headRef.current.rotation.y = 0.05 + Math.sin(time * 0.8) * 0.03;
+        headRef.current.rotation.z = 0.02; // Slight tilt showing interest
+        headRef.current.position.z = 0.03; // Lean forward slightly
       } else {
-        // Idle head movement
-        headRef.current.rotation.x = Math.sin(state.clock.elapsedTime * 0.8) * 0.03;
-        headRef.current.rotation.y = Math.sin(state.clock.elapsedTime * 0.6) * 0.05;
+        // Calm, approachable idle
+        headRef.current.rotation.x = Math.sin(time * 0.5) * 0.02;
+        headRef.current.rotation.y = Math.sin(time * 0.4) * 0.03;
+        headRef.current.rotation.z = 0;
+        headRef.current.position.z = 0;
+        headRef.current.position.y = 1.5;
       }
     }
 
-    // Eye movement for more lifelike appearance
-    if (eyeLeftRef.current && eyeRightRef.current) {
-      const eyeMovement = Math.sin(state.clock.elapsedTime * 0.5) * 0.02;
-      eyeLeftRef.current.position.x = -0.05 + eyeMovement;
-      eyeRightRef.current.position.x = 0.05 + eyeMovement;
-      
+    // Body breathing và posture
+    if (bodyRef.current) {
+      bodyRef.current.scale.y = 1 + Math.sin(time * 1.3) * 0.02;
       if (isListening) {
-        // Eyes look slightly up when listening
-        eyeLeftRef.current.position.y = 1.65 + Math.sin(state.clock.elapsedTime * 1.5) * 0.01;
-        eyeRightRef.current.position.y = 1.65 + Math.sin(state.clock.elapsedTime * 1.5) * 0.01;
+        // Slight forward lean when listening
+        bodyRef.current.rotation.x = 0.02;
+      } else {
+        bodyRef.current.rotation.x = 0;
       }
     }
 
-    // Arm animations
+    // Arm gestures - đơn giản nhưng có ý nghĩa
     if (leftArmRef.current && rightArmRef.current) {
       if (isSpeaking) {
-        // Gesturing while speaking
-        leftArmRef.current.rotation.z = 0.3 + Math.sin(state.clock.elapsedTime * 3) * 0.2;
-        rightArmRef.current.rotation.z = -0.3 + Math.sin(state.clock.elapsedTime * 3 + Math.PI) * 0.2;
-        leftArmRef.current.rotation.x = Math.sin(state.clock.elapsedTime * 2) * 0.1;
-        rightArmRef.current.rotation.x = Math.sin(state.clock.elapsedTime * 2 + Math.PI) * 0.1;
+        // Gentle hand gestures while speaking
+        leftArmRef.current.rotation.z = 0.4 + Math.sin(time * 2.5) * 0.15;
+        leftArmRef.current.rotation.x = Math.sin(time * 2.2) * 0.1;
+        rightArmRef.current.rotation.z = -0.4 + Math.sin(time * 2.5 + Math.PI * 0.6) * 0.15;
+        rightArmRef.current.rotation.x = Math.sin(time * 2.1 + Math.PI * 0.3) * 0.1;
+        
+        // Hand movements
+        if (leftHandRef.current && rightHandRef.current) {
+          leftHandRef.current.rotation.z = Math.sin(time * 3) * 0.15;
+          rightHandRef.current.rotation.z = Math.sin(time * 3 + Math.PI * 0.5) * 0.15;
+        }
+      } else if (isListening) {
+        // Open, welcoming posture
+        leftArmRef.current.rotation.z = 0.2;
+        leftArmRef.current.rotation.x = 0.1;
+        rightArmRef.current.rotation.z = -0.2;
+        rightArmRef.current.rotation.x = 0.1;
+        
+        // Subtle movement
+        leftArmRef.current.rotation.y = Math.sin(time * 0.6) * 0.03;
+        rightArmRef.current.rotation.y = Math.sin(time * 0.6 + Math.PI) * 0.03;
       } else {
-        // Relaxed arm position
-        leftArmRef.current.rotation.z = 0.3 + Math.sin(state.clock.elapsedTime * 0.5) * 0.05;
-        rightArmRef.current.rotation.z = -0.3 + Math.sin(state.clock.elapsedTime * 0.5 + Math.PI) * 0.05;
+        // Relaxed, professional stance
+        leftArmRef.current.rotation.z = 0.15 + Math.sin(time * 0.5) * 0.02;
+        rightArmRef.current.rotation.z = -0.15 + Math.sin(time * 0.5 + Math.PI) * 0.02;
+        leftArmRef.current.rotation.x = 0.05;
+        rightArmRef.current.rotation.x = 0.05;
+        leftArmRef.current.rotation.y = 0;
+        rightArmRef.current.rotation.y = 0;
       }
     }
 
-    // Update sound wave rotation
-    if (soundWaveRef.current && isSpeaking) {
-      soundWaveRef.current.rotation.z = state.clock.elapsedTime * 2;
+    // Eye blinking và expression
+    if (eyeLeftRef.current && eyeRightRef.current) {
+      setBlinkTimer(prev => prev + 0.016);
+      if (blinkTimer > 2.5 + Math.random() * 2) {
+        setIsBlinking(true);
+        setBlinkTimer(0);
+        setTimeout(() => setIsBlinking(false), 120);
+      }
+      
+      if (isBlinking) {
+        eyeLeftRef.current.scale.y = 0.1;
+        eyeRightRef.current.scale.y = 0.1;
+      } else {
+        eyeLeftRef.current.scale.y = 1;
+        eyeRightRef.current.scale.y = 1;
+        
+        // Eyes slightly wider when listening - showing attention
+        if (isListening) {
+          eyeLeftRef.current.scale.setScalar(1.1);
+          eyeRightRef.current.scale.setScalar(1.1);
+        } else {
+          eyeLeftRef.current.scale.setScalar(1);
+          eyeRightRef.current.scale.setScalar(1);
+        }
+      }
     }
 
-    // Update animation scales for status indicators
-    setListeningPulseScale(1 + Math.sin(state.clock.elapsedTime * 4) * 0.2);
-    setSpeakingWaveScale(1 + Math.sin(state.clock.elapsedTime * 6) * 0.3);
+    // Mouth expression
+    if (mouthRef.current) {
+      if (isSpeaking) {
+        // Natural speaking mouth movement
+        const mouthMovement = Math.sin(time * 8) * 0.3 + Math.sin(time * 12) * 0.2;
+        mouthRef.current.scale.y = 0.7 + Math.abs(mouthMovement) * 0.3;
+        mouthRef.current.scale.x = 1 + mouthMovement * 0.1;
+      } else {
+        // Gentle smile - friendly and approachable
+        mouthRef.current.scale.set(1.2, 0.8, 1);
+      }
+    }
   });
 
-  // Character-specific colors
-  const skinColor = character.gender === 'female' ? '#ffdbac' : '#f4c2a1';
-  const clothingColor = character.color;
+  // Game-style colors - warm và professional
+  const skinColor = character.gender === 'female' ? '#f5c6a0' : '#e0a888';
+  const hairColor = character.gender === 'female' ? '#6b4423' : '#4a3018';
+  const clothingColor = character.color || '#4a90a4';
+  const eyeColor = '#2d5a3d';
 
   return (
     <group ref={meshRef} position={position} scale={scale}>
-      {/* Head */}
-      <mesh ref={headRef} position={[0, 1.6, 0]}>
-        <sphereGeometry args={[0.15, 32, 32]} />
-        <meshStandardMaterial color={skinColor} />
+      {/* Game-style human head */}
+      <mesh ref={headRef} position={[0, 1.5, 0]}>
+        <sphereGeometry args={[0.22, 20, 20]} />
+        <meshToonMaterial color={skinColor} />
       </mesh>
       
-      {/* Eyes */}
-      <mesh ref={eyeLeftRef} position={[-0.05, 1.65, 0.12]}>
-        <sphereGeometry args={[0.02, 16, 16]} />
-        <meshStandardMaterial color="#000000" />
-      </mesh>
-      <mesh ref={eyeRightRef} position={[0.05, 1.65, 0.12]}>
-        <sphereGeometry args={[0.02, 16, 16]} />
-        <meshStandardMaterial color="#000000" />
+      {/* Hair - simple but recognizable */}
+      <mesh position={[0, 1.7, -0.08]}>
+        <sphereGeometry args={[0.23, 20, 14, 0, Math.PI * 2, 0, Math.PI * 0.65]} />
+        <meshToonMaterial color={hairColor} />
       </mesh>
       
-      {/* Eyebrows for more expression */}
-      <mesh position={[-0.05, 1.7, 0.12]}>
-        <boxGeometry args={[0.03, 0.005, 0.01]} />
-        <meshStandardMaterial color="#8B4513" />
+      {/* Eyes - expressive và friendly */}
+      <mesh ref={eyeLeftRef} position={[-0.08, 1.54, 0.18]}>
+        <sphereGeometry args={[0.035, 12, 12]} />
+        <meshBasicMaterial color="#ffffff" />
       </mesh>
-      <mesh position={[0.05, 1.7, 0.12]}>
-        <boxGeometry args={[0.03, 0.005, 0.01]} />
-        <meshStandardMaterial color="#8B4513" />
+      <mesh position={[-0.08, 1.54, 0.2]}>
+        <sphereGeometry args={[0.02, 12, 12]} />
+        <meshBasicMaterial color={eyeColor} />
       </mesh>
-      
-      {/* Mouth */}
-      <mesh position={[0, 1.55, 0.12]}>
-        <sphereGeometry args={[0.015, 16, 8]} />
-        <meshStandardMaterial color="#ff6b6b" />
+      <mesh position={[-0.08, 1.54, 0.21]}>
+        <sphereGeometry args={[0.01, 8, 8]} />
+        <meshBasicMaterial color="#000000" />
       </mesh>
       
-      {/* Body */}
-      <mesh position={[0, 1, 0]}>
-        <cylinderGeometry args={[0.2, 0.25, 0.8, 8]} />
-        <meshStandardMaterial color={clothingColor} />
+      <mesh ref={eyeRightRef} position={[0.08, 1.54, 0.18]}>
+        <sphereGeometry args={[0.035, 12, 12]} />
+        <meshBasicMaterial color="#ffffff" />
+      </mesh>
+      <mesh position={[0.08, 1.54, 0.2]}>
+        <sphereGeometry args={[0.02, 12, 12]} />
+        <meshBasicMaterial color={eyeColor} />
+      </mesh>
+      <mesh position={[0.08, 1.54, 0.21]}>
+        <sphereGeometry args={[0.01, 8, 8]} />
+        <meshBasicMaterial color="#000000" />
       </mesh>
       
-      {/* Arms */}
-      <mesh ref={leftArmRef} position={[-0.35, 1.2, 0]} rotation={[0, 0, 0.3]}>
-        <cylinderGeometry args={[0.05, 0.05, 0.6, 8]} />
-        <meshStandardMaterial color={skinColor} />
+      {/* Eyebrows - expressive */}
+      <mesh position={[-0.08, 1.62, 0.17]} rotation={[0, 0, 0.1]}>
+        <boxGeometry args={[0.04, 0.008, 0.015]} />
+        <meshToonMaterial color={hairColor} />
       </mesh>
-      <mesh ref={rightArmRef} position={[0.35, 1.2, 0]} rotation={[0, 0, -0.3]}>
-        <cylinderGeometry args={[0.05, 0.05, 0.6, 8]} />
-        <meshStandardMaterial color={skinColor} />
-      </mesh>
-      
-      {/* Hands */}
-      <mesh position={[-0.5, 0.8, 0]}>
-        <sphereGeometry args={[0.06, 16, 16]} />
-        <meshStandardMaterial color={skinColor} />
-      </mesh>
-      <mesh position={[0.5, 0.8, 0]}>
-        <sphereGeometry args={[0.06, 16, 16]} />
-        <meshStandardMaterial color={skinColor} />
+      <mesh position={[0.08, 1.62, 0.17]} rotation={[0, 0, -0.1]}>
+        <boxGeometry args={[0.04, 0.008, 0.015]} />
+        <meshToonMaterial color={hairColor} />
       </mesh>
       
-      {/* Legs */}
-      <mesh position={[-0.15, 0.3, 0]}>
-        <cylinderGeometry args={[0.08, 0.08, 0.6, 8]} />
-        <meshStandardMaterial color="#2c3e50" />
-      </mesh>
-      <mesh position={[0.15, 0.3, 0]}>
-        <cylinderGeometry args={[0.08, 0.08, 0.6, 8]} />
-        <meshStandardMaterial color="#2c3e50" />
+      {/* Nose - subtle */}
+      <mesh position={[0, 1.48, 0.19]}>
+        <sphereGeometry args={[0.015, 8, 8]} />
+        <meshToonMaterial color={skinColor} />
       </mesh>
       
-      {/* Feet */}
-      <mesh position={[-0.15, 0.05, 0.1]}>
-        <boxGeometry args={[0.12, 0.05, 0.2]} />
-        <meshStandardMaterial color="#654321" />
+      {/* Mouth - friendly smile */}
+      <mesh ref={mouthRef} position={[0, 1.42, 0.18]}>
+        <sphereGeometry args={[0.025, 12, 8]} />
+        <meshToonMaterial color="#d4756b" />
       </mesh>
-      <mesh position={[0.15, 0.05, 0.1]}>
-        <boxGeometry args={[0.12, 0.05, 0.2]} />
-        <meshStandardMaterial color="#654321" />
+      
+      {/* Neck */}
+      <mesh position={[0, 1.25, 0]}>
+        <cylinderGeometry args={[0.1, 0.12, 0.2, 12]} />
+        <meshToonMaterial color={skinColor} />
+      </mesh>
+      
+      {/* Body - professional counselor */}
+      <mesh ref={bodyRef} position={[0, 0.9, 0]}>
+        <capsuleGeometry args={[0.28, 0.7, 8, 16]} />
+        <meshToonMaterial color={clothingColor} />
+      </mesh>
+      
+      {/* Shoulders */}
+      <mesh position={[-0.22, 1.15, 0]}>
+        <sphereGeometry args={[0.09, 12, 12]} />
+        <meshToonMaterial color={clothingColor} />
+      </mesh>
+      <mesh position={[0.22, 1.15, 0]}>
+        <sphereGeometry args={[0.09, 12, 12]} />
+        <meshToonMaterial color={clothingColor} />
+      </mesh>
+      
+      {/* Arms - expressive gestures */}
+      <group ref={leftArmRef} position={[-0.3, 1.1, 0]}>
+        {/* Upper arm */}
+        <mesh position={[0, -0.2, 0]}>
+          <capsuleGeometry args={[0.07, 0.35, 6, 12]} />
+          <meshToonMaterial color={clothingColor} />
+        </mesh>
+        {/* Forearm */}
+        <mesh position={[0, -0.5, 0]}>
+          <capsuleGeometry args={[0.06, 0.28, 6, 12]} />
+          <meshToonMaterial color={skinColor} />
+        </mesh>
+      </group>
+      
+      <group ref={rightArmRef} position={[0.3, 1.1, 0]}>
+        {/* Upper arm */}
+        <mesh position={[0, -0.2, 0]}>
+          <capsuleGeometry args={[0.07, 0.35, 6, 12]} />
+          <meshToonMaterial color={clothingColor} />
+        </mesh>
+        {/* Forearm */}
+        <mesh position={[0, -0.5, 0]}>
+          <capsuleGeometry args={[0.06, 0.28, 6, 12]} />
+          <meshToonMaterial color={skinColor} />
+        </mesh>
+      </group>
+      
+      {/* Hands - simple but expressive */}
+      <mesh ref={leftHandRef} position={[-0.3, 0.55, 0]}>
+        <sphereGeometry args={[0.08, 10, 10]} />
+        <meshToonMaterial color={skinColor} />
+      </mesh>
+      <mesh ref={rightHandRef} position={[0.3, 0.55, 0]}>
+        <sphereGeometry args={[0.08, 10, 10]} />
+        <meshToonMaterial color={skinColor} />
+      </mesh>
+      
+      {/* Lower body */}
+      <mesh position={[0, 0.45, 0]}>
+        <cylinderGeometry args={[0.22, 0.28, 0.25, 12]} />
+        <meshToonMaterial color="#4a5568" />
+      </mesh>
+      
+      {/* Legs - simple */}
+      <mesh position={[-0.14, 0.15, 0]}>
+        <capsuleGeometry args={[0.09, 0.4, 6, 12]} />
+        <meshToonMaterial color="#4a5568" />
+      </mesh>
+      <mesh position={[0.14, 0.15, 0]}>
+        <capsuleGeometry args={[0.09, 0.4, 6, 12]} />
+        <meshToonMaterial color="#4a5568" />
+      </mesh>
+      
+      {/* Feet - professional */}
+      <mesh position={[-0.14, 0.02, 0.08]}>
+        <boxGeometry args={[0.12, 0.04, 0.22]} />
+        <meshToonMaterial color="#2d3748" />
+      </mesh>
+      <mesh position={[0.14, 0.02, 0.08]}>
+        <boxGeometry args={[0.12, 0.04, 0.22]} />
+        <meshToonMaterial color="#2d3748" />
       </mesh>
 
-      {/* Status indicators */}
+      {/* Status indicators - game-style nhưng nhẹ nhàng */}
       {isListening && (
-        <>
-          <mesh position={[0, 2.2, 0]}>
-            <ringGeometry args={[0.25, 0.3, 32]} />
-            <meshBasicMaterial color="#00ff00" transparent opacity={0.7} />
+        <group position={[0, 2, 0]}>
+          {/* Listening ring */}
+          <mesh>
+            <torusGeometry args={[0.32, 0.02, 8, 24]} />
+            <meshBasicMaterial color="#10b981" transparent opacity={0.8} />
           </mesh>
-          {/* Pulsing listening indicator */}
-          <mesh position={[0, 2.2, 0]} scale={[listeningPulseScale, listeningPulseScale, 1]}>
-            <ringGeometry args={[0.35, 0.4, 32]} />
-            <meshBasicMaterial color="#00ff00" transparent opacity={0.3} />
+          {/* Pulsing effect */}
+          <mesh scale={[1 + Math.sin(currentTime * 3) * 0.15, 1 + Math.sin(currentTime * 3) * 0.15, 1]}>
+            <torusGeometry args={[0.4, 0.015, 8, 24]} />
+            <meshBasicMaterial color="#10b981" transparent opacity={0.4} />
           </mesh>
-        </>
+          
+          {/* Listening particles */}
+          {[...Array(4)].map((_, i) => (
+            <mesh 
+              key={i}
+              position={[
+                Math.cos((currentTime * 2 + i * Math.PI * 0.5)) * 0.25,
+                Math.sin((currentTime * 2 + i * Math.PI * 0.5)) * 0.05,
+                Math.sin((currentTime * 2 + i * Math.PI * 0.5)) * 0.25
+              ]}
+              scale={[1 + Math.sin(currentTime * 4 + i) * 0.3, 1 + Math.sin(currentTime * 4 + i) * 0.3, 1]}
+            >
+              <sphereGeometry args={[0.015, 6, 6]} />
+              <meshBasicMaterial color="#10b981" transparent opacity={0.7} />
+            </mesh>
+          ))}
+        </group>
       )}
       
       {isSpeaking && (
-        <>
-          <mesh position={[0, 2.2, 0]}>
-            <ringGeometry args={[0.25, 0.3, 32]} />
-            <meshBasicMaterial color="#ff6b6b" transparent opacity={0.7} />
+        <group position={[0, 2, 0]}>
+          {/* Speaking ring */}
+          <mesh>
+            <torusGeometry args={[0.32, 0.02, 8, 24]} />
+            <meshBasicMaterial color="#3b82f6" transparent opacity={0.8} />
           </mesh>
-          {/* Sound waves */}
-          <mesh ref={soundWaveRef} position={[0, 2.2, 0]}>
-            <ringGeometry args={[0.35, 0.4, 32]} />
-            <meshBasicMaterial color="#ff6b6b" transparent opacity={0.3} />
+          {/* Rotating effect */}
+          <mesh rotation={[0, 0, currentTime * 1.5]} scale={[1.2, 1.2, 1]}>
+            <torusGeometry args={[0.4, 0.015, 8, 24]} />
+            <meshBasicMaterial color="#3b82f6" transparent opacity={0.3} />
           </mesh>
-          {/* Additional sound wave */}
-          <mesh position={[0, 2.2, 0]} scale={[speakingWaveScale, speakingWaveScale, 1]}>
-            <ringGeometry args={[0.45, 0.5, 32]} />
-            <meshBasicMaterial color="#ff6b6b" transparent opacity={0.2} />
-          </mesh>
-        </>
+          
+          {/* Speaking wave particles */}
+          {[...Array(6)].map((_, i) => (
+            <mesh 
+              key={i}
+              position={[
+                Math.cos(currentTime * 4 + i * Math.PI * 0.33) * (0.2 + i * 0.05),
+                Math.sin(currentTime * 6 + i * Math.PI * 0.5) * 0.03,
+                Math.sin(currentTime * 4 + i * Math.PI * 0.33) * (0.2 + i * 0.05)
+              ]}
+              scale={[1 + Math.sin(currentTime * 8 + i) * 0.4, 1, 1]}
+            >
+              <sphereGeometry args={[0.012 + i * 0.002, 6, 6]} />
+              <meshBasicMaterial color="#3b82f6" transparent opacity={0.6} />
+            </mesh>
+          ))}
+        </group>
       )}
     </group>
   );
 }
 
-// GLB Avatar component with enhanced error handling
-function GLBAvatar({ 
+// GLB Avatar wrapper với game-style enhancements
+function GameStyleGLBAvatar({ 
   position = [0, 0, 0], 
   scale = 1, 
   isListening = false, 
@@ -235,6 +398,17 @@ function GLBAvatar({
       if (scene) {
         scene.traverse((child: THREE.Object3D) => {
           if ((child as THREE.Mesh).isMesh) {
+            const mesh = child as THREE.Mesh;
+            // Apply toon shading cho game look
+            if (mesh.material) {
+              const material = Array.isArray(mesh.material) ? mesh.material[0] : mesh.material;
+              if (material && 'color' in material) {
+                mesh.material = new THREE.MeshToonMaterial({
+                  color: (material as any).color || '#ffffff',
+                  map: 'map' in material ? (material as any).map : null
+                });
+              }
+            }
             child.castShadow = true;
             child.receiveShadow = true;
           }
@@ -243,19 +417,25 @@ function GLBAvatar({
     }, [scene]);
 
     useFrame((state) => {
+      const time = state.clock.elapsedTime;
       if (avatarRef.current) {
-        // Gentle floating animation
-        avatarRef.current.position.y = position[1] + Math.sin(state.clock.elapsedTime * 0.5) * 0.05;
+        // Game-style floating animation
+        avatarRef.current.position.y = position[1] + Math.sin(time * 1.5) * 0.06;
         
         if (isSpeaking) {
-          // More animated when speaking
-          avatarRef.current.rotation.y = Math.sin(state.clock.elapsedTime * 2) * 0.1;
+          // Engaging speaking animation
+          avatarRef.current.rotation.y = Math.sin(time * 2.5) * 0.12;
+          avatarRef.current.rotation.x = Math.sin(time * 2) * 0.03;
+          avatarRef.current.scale.setScalar(scale * (1 + Math.sin(time * 4) * 0.02));
         } else if (isListening) {
-          // Attentive posture when listening
-          avatarRef.current.rotation.y = Math.sin(state.clock.elapsedTime * 1) * 0.05;
+          // Attentive listening pose
+          avatarRef.current.rotation.y = Math.sin(time * 1.2) * 0.06;
+          avatarRef.current.rotation.x = -0.02 + Math.sin(time * 1.5) * 0.02;
         } else {
-          // Subtle idle movement
-          avatarRef.current.rotation.y = Math.sin(state.clock.elapsedTime * 0.5) * 0.03;
+          // Calm idle animation
+          avatarRef.current.rotation.y = Math.sin(time * 0.8) * 0.04;
+          avatarRef.current.rotation.x = Math.sin(time * 0.6) * 0.01;
+          avatarRef.current.scale.setScalar(scale);
         }
       }
     });
@@ -264,26 +444,30 @@ function GLBAvatar({
       <group ref={avatarRef} position={position} scale={scale}>
         <primitive object={scene} />
         
-        {/* Status indicators */}
+        {/* Game-style status effects */}
         {isListening && (
-          <mesh position={[0, 2.5, 0]}>
-            <ringGeometry args={[0.3, 0.35, 32]} />
-            <meshBasicMaterial color="#00ff00" transparent opacity={0.6} />
-          </mesh>
+          <group position={[0, 2.5, 0]}>
+            <mesh>
+              <torusGeometry args={[0.45, 0.025, 8, 24]} />
+              <meshBasicMaterial color="#10b981" transparent opacity={0.7} />
+            </mesh>
+          </group>
         )}
         
         {isSpeaking && (
-          <mesh position={[0, 2.5, 0]}>
-            <ringGeometry args={[0.3, 0.35, 32]} />
-            <meshBasicMaterial color="#ff6b6b" transparent opacity={0.6} />
-          </mesh>
+          <group position={[0, 2.5, 0]}>
+            <mesh>
+              <torusGeometry args={[0.45, 0.025, 8, 24]} />
+              <meshBasicMaterial color="#3b82f6" transparent opacity={0.7} />
+            </mesh>
+          </group>
         )}
       </group>
     );
   } catch (error) {
-    console.warn('Failed to load GLB model, using enhanced fallback avatar:', error);
+    console.warn('Failed to load GLB model, using game-style counselor avatar:', error);
     return (
-      <EnhancedFallbackAvatar 
+      <GameStyleCounselorAvatar 
         position={position} 
         scale={scale} 
         isListening={isListening}
@@ -294,7 +478,7 @@ function GLBAvatar({
   }
 }
 
-interface EnhancedMixamoAvatarProps {
+interface GameStyleAvatarProps {
   position?: [number, number, number];
   scale?: number;
   isListening?: boolean;
@@ -308,10 +492,10 @@ export default function EnhancedMixamoAvatar({
   isListening = false,
   isSpeaking = false,
   character
-}: EnhancedMixamoAvatarProps) {
+}: GameStyleAvatarProps) {
   return (
     <Suspense fallback={
-      <EnhancedFallbackAvatar 
+      <GameStyleCounselorAvatar 
         position={position} 
         scale={scale} 
         isListening={isListening}
@@ -319,7 +503,7 @@ export default function EnhancedMixamoAvatar({
         character={character}
       />
     }>
-      <GLBAvatar 
+      <GameStyleGLBAvatar 
         position={position} 
         scale={scale} 
         isListening={isListening}
@@ -330,7 +514,7 @@ export default function EnhancedMixamoAvatar({
   );
 }
 
-// Preload models with error handling
+// Preload models
 AVAILABLE_CHARACTERS.forEach(character => {
   try {
     useGLTF.preload(character.modelPath);
