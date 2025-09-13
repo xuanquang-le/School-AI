@@ -1,4 +1,4 @@
-import React, { Suspense, useRef, useEffect, useState } from 'react';
+import { Suspense, useRef, useEffect, useState } from 'react';
 import { useFrame } from '@react-three/fiber';
 import { useGLTF } from '@react-three/drei';
 import * as THREE from 'three';
@@ -390,92 +390,164 @@ function GameStyleGLBAvatar({
   isSpeaking?: boolean;
   character: Character;
 }) {
-  try {
-    const { scene } = useGLTF(character.modelPath);
-    const avatarRef = useRef<THREE.Group>(null);
+  const { scene, animations } = useGLTF(character.modelPath);
+  const avatarRef = useRef<THREE.Group>(null);
+  const mixerRef = useRef<THREE.AnimationMixer | null>(null);
+  const idleActionRef = useRef<THREE.AnimationAction | null>(null);
+  const talkActionRef = useRef<THREE.AnimationAction | null>(null);
+  const currentActionRef = useRef<'idle' | 'talk' | null>(null);
 
-    useEffect(() => {
-      if (scene) {
-        scene.traverse((child: THREE.Object3D) => {
-          if ((child as THREE.Mesh).isMesh) {
-            const mesh = child as THREE.Mesh;
-            // Apply toon shading cho game look
-            if (mesh.material) {
-              const material = Array.isArray(mesh.material) ? mesh.material[0] : mesh.material;
-              if (material && 'color' in material) {
-                mesh.material = new THREE.MeshToonMaterial({
-                  color: (material as any).color || '#ffffff',
-                  map: 'map' in material ? (material as any).map : null
-                });
-              }
+  useEffect(() => {
+    if (scene) {
+      scene.traverse((child: THREE.Object3D) => {
+        if ((child as THREE.Mesh).isMesh) {
+          const mesh = child as THREE.Mesh;
+          // Apply toon shading cho game look
+          if (mesh.material) {
+            const material = Array.isArray(mesh.material) ? mesh.material[0] : mesh.material;
+            if (material && 'color' in material) {
+              mesh.material = new THREE.MeshToonMaterial({
+                color: (material as THREE.Material & { color?: string }).color || '#ffffff',
+                map: 'map' in material ? (material as THREE.Material & { map?: THREE.Texture }).map : null
+              });
             }
-            child.castShadow = true;
-            child.receiveShadow = true;
           }
-        });
-      }
-    }, [scene]);
+          child.castShadow = true;
+          child.receiveShadow = true;
+        }
+      });
 
-    useFrame((state) => {
-      const time = state.clock.elapsedTime;
-      if (avatarRef.current) {
-        // Game-style floating animation
-        avatarRef.current.position.y = position[1] + Math.sin(time * 1.5) * 0.06;
-        
-        if (isSpeaking) {
-          // Engaging speaking animation
-          avatarRef.current.rotation.y = Math.sin(time * 2.5) * 0.12;
-          avatarRef.current.rotation.x = Math.sin(time * 2) * 0.03;
-          avatarRef.current.scale.setScalar(scale * (1 + Math.sin(time * 4) * 0.02));
-        } else if (isListening) {
-          // Attentive listening pose
-          avatarRef.current.rotation.y = Math.sin(time * 1.2) * 0.06;
-          avatarRef.current.rotation.x = -0.02 + Math.sin(time * 1.5) * 0.02;
-        } else {
-          // Calm idle animation
-          avatarRef.current.rotation.y = Math.sin(time * 0.8) * 0.04;
-          avatarRef.current.rotation.x = Math.sin(time * 0.6) * 0.01;
-          avatarRef.current.scale.setScalar(scale);
+      // Setup animation mixer
+      if (animations && animations.length > 0) {
+        mixerRef.current = new THREE.AnimationMixer(scene);
+        // Find idle and talk animations
+        const idleClip = animations.find(anim => anim.name.toLowerCase().includes('idle'));
+        const talkClip = animations.find(anim => anim.name.toLowerCase().includes('talk'));
+
+        if (idleClip) {
+          idleActionRef.current = mixerRef.current.clipAction(idleClip);
+          idleActionRef.current.setLoop(THREE.LoopRepeat, Infinity);
+          idleActionRef.current.enabled = true;
+          idleActionRef.current.clampWhenFinished = false;
+          idleActionRef.current.setEffectiveWeight(1);
+        }
+        if (talkClip) {
+          talkActionRef.current = mixerRef.current.clipAction(talkClip);
+          talkActionRef.current.setLoop(THREE.LoopRepeat, Infinity);
+          talkActionRef.current.enabled = true;
+          talkActionRef.current.clampWhenFinished = false;
+          talkActionRef.current.setEffectiveWeight(1);
+        }
+
+        // Start with idle if available
+        if (idleActionRef.current) {
+          currentActionRef.current = 'idle';
+          idleActionRef.current.reset().fadeIn(0.2).play();
         }
       }
-    });
+    }
+    // Cleanup on unmount or model change
+    return () => {
+      if (mixerRef.current) {
+        try { 
+          mixerRef.current.stopAllAction(); 
+        } catch (error) {
+          console.warn('Failed to stop animation actions:', error);
+        }
+      }
+      idleActionRef.current = null;
+      talkActionRef.current = null;
+      currentActionRef.current = null;
+      mixerRef.current = null;
+    };
+  }, [scene, animations]);
 
-    return (
-      <group ref={avatarRef} position={position} scale={scale}>
-        <primitive object={scene} />
+  useFrame((state, delta) => {
+    const time = state.clock.elapsedTime;
+    
+    // Update animation mixer
+    if (mixerRef.current) {
+      mixerRef.current.update(delta);
+    }
+
+    if (avatarRef.current) {
+      // Game-style floating animation
+      avatarRef.current.position.y = position[1] + Math.sin(time * 1.5) * 0.06;
+      
+      if (isSpeaking) {
+        // Switch to talk animation
+        if (mixerRef.current && talkActionRef.current && currentActionRef.current !== 'talk') {
+          const from = currentActionRef.current === 'idle' ? idleActionRef.current : null;
+          const to = talkActionRef.current;
+          if (from) {
+            from.crossFadeTo(to, 0.2, false);
+          }
+          to.reset().fadeIn(0.2).play();
+          currentActionRef.current = 'talk';
+        }
+        // Additional body movement
+        avatarRef.current.rotation.y = Math.sin(time * 2.5) * 0.12;
+        avatarRef.current.rotation.x = Math.sin(time * 2) * 0.03;
+        avatarRef.current.scale.setScalar(scale * (1 + Math.sin(time * 4) * 0.02));
+      } else if (isListening) {
+        // Switch to idle animation while listening
+        if (mixerRef.current && idleActionRef.current && currentActionRef.current !== 'idle') {
+          const from = currentActionRef.current === 'talk' ? talkActionRef.current : null;
+          const to = idleActionRef.current;
+          if (from) {
+            from.crossFadeTo(to, 0.2, false);
+          }
+          to.reset().fadeIn(0.2).play();
+          currentActionRef.current = 'idle';
+        }
         
-        {/* Game-style status effects */}
-        {isListening && (
-          <group position={[0, 2.5, 0]}>
-            <mesh>
-              <torusGeometry args={[0.45, 0.025, 8, 24]} />
-              <meshBasicMaterial color="#10b981" transparent opacity={0.7} />
-            </mesh>
-          </group>
-        )}
+        // Attentive listening pose
+        avatarRef.current.rotation.y = Math.sin(time * 1.2) * 0.06;
+        avatarRef.current.rotation.x = -0.02 + Math.sin(time * 1.5) * 0.02;
+      } else {
+        // Ensure idle when not speaking or listening
+        if (mixerRef.current && idleActionRef.current && currentActionRef.current !== 'idle') {
+          const from = currentActionRef.current === 'talk' ? talkActionRef.current : null;
+          const to = idleActionRef.current;
+          if (from) {
+            from.crossFadeTo(to, 0.2, false);
+          }
+          to.reset().fadeIn(0.2).play();
+          currentActionRef.current = 'idle';
+        }
         
-        {isSpeaking && (
-          <group position={[0, 2.5, 0]}>
-            <mesh>
-              <torusGeometry args={[0.45, 0.025, 8, 24]} />
-              <meshBasicMaterial color="#3b82f6" transparent opacity={0.7} />
-            </mesh>
-          </group>
-        )}
-      </group>
-    );
-  } catch (error) {
-    console.warn('Failed to load GLB model, using game-style counselor avatar:', error);
-    return (
-      <GameStyleCounselorAvatar 
-        position={position} 
-        scale={scale} 
-        isListening={isListening}
-        isSpeaking={isSpeaking}
-        character={character}
-      />
-    );
-  }
+        // Calm idle animation
+        avatarRef.current.rotation.y = Math.sin(time * 0.8) * 0.04;
+        avatarRef.current.rotation.x = Math.sin(time * 0.6) * 0.01;
+        avatarRef.current.scale.setScalar(scale);
+      }
+    }
+  });
+
+  return (
+    <group ref={avatarRef} position={position} scale={scale}>
+      <primitive object={scene} />
+      
+      {/* Game-style status effects */}
+      {isListening && (
+        <group position={[0, 2.5, 0]}>
+          <mesh>
+            <torusGeometry args={[0.45, 0.025, 8, 24]} />
+            <meshBasicMaterial color="#10b981" transparent opacity={0.7} />
+          </mesh>
+        </group>
+      )}
+      
+      {isSpeaking && (
+        <group position={[0, 2.5, 0]}>
+          <mesh>
+            <torusGeometry args={[0.45, 0.025, 8, 24]} />
+            <meshBasicMaterial color="#3b82f6" transparent opacity={0.7} />
+          </mesh>
+        </group>
+      )}
+    </group>
+  );
 }
 
 interface GameStyleAvatarProps {
@@ -521,4 +593,5 @@ AVAILABLE_CHARACTERS.forEach(character => {
   } catch (error) {
     console.warn(`Could not preload model for ${character.name}:`, error);
   }
+
 });
