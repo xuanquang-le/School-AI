@@ -1,4 +1,3 @@
-import React from 'react';
 import { Canvas } from '@react-three/fiber';
 import { OrbitControls, Environment, Text, Box, Plane } from '@react-three/drei';
 import { useLanguage } from '../contexts/LanguageContext';
@@ -103,7 +102,7 @@ export default function VirtualRoom({ character, isListening, isSpeaking }: Virt
   return (
     <div className="w-full h-full">
       <Canvas
-        camera={{ position: [0, 2, 5], fov: 75 }}
+        camera={{ position: [0, 2, 6], fov: 75 }}
         shadows
         className="bg-gradient-to-b from-blue-50 to-indigo-100"
       >
@@ -145,7 +144,7 @@ export default function VirtualRoom({ character, isListening, isSpeaking }: Virt
         <EnhancedMixamoAvatar 
           character={character}
           position={[0, 0, 0]} 
-          scale={1} 
+          scale={1.8} 
           isListening={isListening} 
           isSpeaking={isSpeaking} 
         />
@@ -154,8 +153,8 @@ export default function VirtualRoom({ character, isListening, isSpeaking }: Virt
           enablePan={false}
           enableZoom={true}
           maxPolarAngle={Math.PI / 2.2}
-          minDistance={3}
-          maxDistance={8}
+          minDistance={4}
+          maxDistance={10}
         />
 
         <Environment preset="city" />

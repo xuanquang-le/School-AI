@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Canvas } from '@react-three/fiber';
 import { OrbitControls, Environment, Text, Box, Plane, Sphere } from '@react-three/drei';
 import { motion } from 'framer-motion';
@@ -199,7 +199,7 @@ export default function EnhancedVirtualRoom({
   return (
     <div className="relative w-full h-full">
       <Canvas
-        camera={{ position: [0, 2, 5], fov: 75 }}
+        camera={{ position: [0, 2, 6], fov: 75 }}
         shadows
         className="bg-gradient-to-b from-blue-50 to-indigo-100"
       >
@@ -242,7 +242,7 @@ export default function EnhancedVirtualRoom({
         <EnhancedMixamoAvatar 
           character={character}
           position={[0, 0, 0]} 
-          scale={1} 
+          scale={1.8} 
           isListening={isListening} 
           isSpeaking={isSpeaking} 
         />
@@ -251,8 +251,8 @@ export default function EnhancedVirtualRoom({
           enablePan={false}
           enableZoom={true}
           maxPolarAngle={Math.PI / 2.2}
-          minDistance={3}
-          maxDistance={10}
+          minDistance={4}
+          maxDistance={12}
           autoRotate={false}
         />
 
