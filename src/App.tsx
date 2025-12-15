@@ -1,4 +1,6 @@
-import React, { useState, useCallback, useEffect } from 'react';
+// --- START OF FILE App.tsx ---
+
+import { useState, useCallback, useEffect, useRef } from 'react';
 import { motion } from 'framer-motion';
 import { useAuth } from './contexts/Authcontext';
 import CharacterSelection from './components/CharacterSelection';
@@ -9,11 +11,10 @@ import ChatInterface from './components/ChatInterface';
 import { useSpeechRecognition } from './hooks/useSpeechRecognition';
 import { useSpeechSynthesis } from './hooks/useSpeechSynthesis';
 import { geminiApiService } from './services/geminiApiService';
-import { Character, getLocalizedCharacters } from './types/Character';
+import { Character } from './types/Character';
 import { useLanguage } from './contexts/LanguageContext';
 import LanguageSelector from './components/LanguageSelector';
 import { Heart, Shield, Users, ArrowLeft, LogIn } from 'lucide-react';
-import TextToSpeechExample from './.local/example';
 
 interface Message {
   id: string;
@@ -25,126 +26,115 @@ interface Message {
 function App() {
   const { t } = useLanguage();
   const { user } = useAuth();
+  
+  // State quản lý
   const [selectedCharacter, setSelectedCharacter] = useState<Character | null>(null);
   const [showAuthModal, setShowAuthModal] = useState(false);
   const [messages, setMessages] = useState<Message[]>([]);
   const [speechEnabled, setSpeechEnabled] = useState(true);
   const [isProcessing, setIsProcessing] = useState(false);
   const [hasGreeted, setHasGreeted] = useState(false);
-
+  
+  // Ref để kiểm soát vòng đời component (tránh lỗi memory leak)
+  const isMounted = useRef(true);
+  
+  // Hooks âm thanh
   const { speak, stop, isSpeaking } = useSpeechSynthesis();
 
+  // Cleanup khi thoát ứng dụng
+  useEffect(() => {
+    isMounted.current = true;
+    return () => { isMounted.current = false; stop(); };
+  }, [stop]);
+
+  // Xử lý đọc tin nhắn (Dùng useCallback để tối ưu hiệu năng render)
   const handleSpeakMessage = useCallback((text: string) => {
-    if (text === '') {
+    if (!text) {
       stop();
     } else {
       speak(text);
     }
   }, [speak, stop]);
 
+  // Xử lý gửi tin nhắn & gọi AI
   const handleSendMessage = useCallback(async (text: string) => {
-    const userMessage: Message = {
-      id: Date.now().toString(),
-      text,
-      isUser: true,
-      timestamp: new Date()
-    };
-
+    // 1. Hiển thị tin nhắn user ngay lập tức
+    const userMessage: Message = { id: Date.now().toString(), text, isUser: true, timestamp: new Date() };
     setMessages(prev => [...prev, userMessage]);
     setIsProcessing(true);
 
     try {
-      const response = await geminiApiService.getCounselingResponse(text);
-
-      const aiMessage: Message = {
-        id: (Date.now() + 1).toString(),
-        text: response,
-        isUser: false,
-        timestamp: new Date()
-      };
-
-      setMessages(prev => [...prev, aiMessage]);
-
-      // Auto-speak AI response if speech is enabled
-      setTimeout(() => {
-        if (speechEnabled) {
-          speak(response);
-        }
-      }, 500);
-    } catch (error) {
-      console.error('Error getting AI response:', error);
-    } finally {
-      setIsProcessing(false);
-    }
-  }, [speak, speechEnabled]);
-
-  const toggleSpeech = useCallback(() => {
-    setSpeechEnabled(prev => {
-      const newValue = !prev;
-      // Stop speaking if disabling speech
-      if (!newValue) {
-        stop();
+      // 2. Gọi API Gemini (Truyền text VÀ history messages)
+      // Lưu ý: File geminiApiService.ts phải được cập nhật để nhận 2 tham số
+      const response = await geminiApiService.getCounselingResponse(text, messages);
+      
+      // 3. Cập nhật câu trả lời của AI
+      if (isMounted.current) {
+        setMessages(prev => [...prev, {
+          id: (Date.now() + 1).toString(),
+          text: response,
+          isUser: false,
+          timestamp: new Date()
+        }]);
       }
-      return newValue;
-    });
-  }, [stop]);
+    } catch (error) {
+      console.error('AI Error:', error);
+    } finally {
+      if (isMounted.current) setIsProcessing(false);
+    }
+  }, [messages]);
 
+  // Effect: Tự động đọc tin nhắn mới nhất của AI
+  useEffect(() => {
+    const lastMsg = messages[messages.length - 1];
+    if (lastMsg && !lastMsg.isUser && speechEnabled && !isProcessing) {
+      const timer = setTimeout(() => speak(lastMsg.text), 500);
+      return () => clearTimeout(timer);
+    }
+  }, [messages, speechEnabled, isProcessing, speak]);
+
+  // Hook nhận diện giọng nói
   const { isListening, startListening, stopListening, transcript } = useSpeechRecognition({
     onResult: handleSendMessage,
-    onError: (error) => {
-      console.error('Speech recognition error:', error);
-    }
+    onError: (e) => console.error('Voice Error:', e)
   });
 
-  // Initialize greeting when character is selected
+  // Effect: Gửi lời chào khi chọn nhân vật
   useEffect(() => {
     if (selectedCharacter && !hasGreeted) {
-      const greetingMessage: Message = {
-        id: '1',
-        text: selectedCharacter.greeting,
-        isUser: false,
-        timestamp: new Date()
-      };
-      
-      setMessages([greetingMessage]);
-      
-      // Auto-speak greeting after a short delay
-      setTimeout(() => {
-        if (speechEnabled) {
-          speak(selectedCharacter.greeting);
-        }
-      }, 1000);
-      
+      setMessages([{ id: '1', text: selectedCharacter.greeting, isUser: false, timestamp: new Date() }]);
       setHasGreeted(true);
     }
-  }, [selectedCharacter, speechEnabled, speak, hasGreeted]);
+  }, [selectedCharacter, hasGreeted]);
 
-  const handleBackToSelection = () => {
-    setSelectedCharacter(null);
-    setMessages([]);
-    setHasGreeted(false);
-    stop();
+  const handleBack = () => { 
+    stop(); 
+    setSelectedCharacter(null); 
+    setMessages([]); 
+    setHasGreeted(false); 
   };
 
+  const handleToggleSpeech = () => {
+    if(speechEnabled) stop();
+    setSpeechEnabled(!speechEnabled);
+  };
+
+  // MÀN HÌNH 1: CHỌN NHÂN VẬT
   if (!selectedCharacter) {
     return (
       <div className="relative">
-        {/* Fixed top bar */}
-        <div className="fixed top-4 right-4 z-50 flex items-center space-x-3">
+        <div className="fixed top-4 right-4 z-50 flex gap-3">
           <LanguageSelector />
-          {user ? (
-            <UserProfile />
-          ) : (
-            <motion.button
-              onClick={() => setShowAuthModal(true)}
-              className="flex items-center space-x-2 px-4 py-2 bg-white/90 backdrop-blur-sm rounded-lg shadow-md hover:shadow-lg transition-all duration-200 border border-gray-200"
-              whileHover={{ scale: 1.02 }}
-              whileTap={{ scale: 0.98 }}
+          {!user && (
+            <button 
+              onClick={() => setShowAuthModal(true)} 
+              className="flex items-center gap-2 px-4 py-2 bg-white/90 backdrop-blur-sm rounded-lg shadow-md hover:shadow-lg transition-all"
             >
-              <LogIn className="w-4 h-4 text-gray-600" />
-              <span className="text-sm font-medium text-gray-700">Đăng nhập</span>
-            </motion.button>
+              <LogIn size={16}/> 
+              <span className="text-sm font-medium">Đăng nhập</span>
+            </button>
           )}
+          {user && <UserProfile />}
         </div>
         <CharacterSelection onSelectCharacter={setSelectedCharacter} />
         <AuthModal isOpen={showAuthModal} onClose={() => setShowAuthModal(false)} />
@@ -152,128 +142,62 @@ function App() {
     );
   }
 
+  // MÀN HÌNH 2: PHÒNG CHAT 3D
   return (
-    <motion.div 
-      initial={{ opacity: 0 }}
-      animate={{ opacity: 1 }}
-      transition={{ duration: 0.8 }}
-      className="min-h-screen bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50"
-    >
-      {/* Fixed top bar */}
-      <div className="fixed top-4 right-4 z-50 flex items-center space-x-3">
-        <LanguageSelector />
-        {user ? (
-          <UserProfile />
-        ) : (
-          <motion.button
-            onClick={() => setShowAuthModal(true)}
-            className="flex items-center space-x-2 px-4 py-2 bg-white/90 backdrop-blur-sm rounded-lg shadow-md hover:shadow-lg transition-all duration-200 border border-gray-200"
-            whileHover={{ scale: 1.02 }}
-            whileTap={{ scale: 0.98 }}
-          >
-            <LogIn className="w-4 h-4 text-gray-600" />
-            <span className="text-sm font-medium text-gray-700">Đăng nhập</span>
-          </motion.button>
-        )}
-      </div>
-      
+    <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-50">
       {/* Header */}
-      <motion.header
-        initial={{ opacity: 0, y: -20 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ delay: 0.2 }}
-        className="bg-white/90 backdrop-blur-sm border-b border-gray-200 sticky top-0 z-50"
-      >
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center space-x-3">
-              <motion.button
-                onClick={handleBackToSelection}
-                className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
-                whileHover={{ scale: 1.05 }}
-                whileTap={{ scale: 0.95 }}
-              >
-                <ArrowLeft className="h-6 w-6 text-gray-600" />
-              </motion.button>
-              <div className="p-2 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-xl">
-                <Heart className="h-8 w-8 text-white" />
-              </div>
-              <div>
-                <h1 className="text-2xl font-bold text-gray-900">{t('app.title')}</h1>
-                <p className="text-sm text-gray-600">
-                  💬 {t('app.chatting')} {selectedCharacter.name} - {selectedCharacter.role}
-                </p>
-              </div>
-            </div>
-            <div className="flex items-center space-x-6">
-              <div className="flex items-center space-x-2 text-sm text-gray-600">
-                <Shield className="h-4 w-4" />
-                <span>{t('app.safe')}</span>
-              </div>
-              <div className="flex items-center space-x-2 text-sm text-gray-600">
-                <Users className="h-4 w-4" />
-                <span>{t('app.available')}</span>
-              </div>
-              {/* Status indicator */}
-              <div className="flex items-center space-x-2 text-sm">
-                <div className={`w-2 h-2 rounded-full ${
-                  isProcessing ? 'bg-yellow-500 animate-pulse' :
-                  isSpeaking ? 'bg-green-500 animate-pulse' :
-                  isListening ? 'bg-red-500 animate-pulse' :
-                  'bg-blue-500'
-                }`} />
-                <span className="text-gray-600">
-                  {isProcessing ? t('app.status.processing') :
-                   isSpeaking ? t('app.status.speaking') :
-                   isListening ? t('app.status.listening') :
-                   t('app.status.ready')}
-                </span>
-              </div>
-            </div>
+      <header className="fixed top-0 w-full bg-white/90 backdrop-blur-sm z-40 border-b px-4 py-3 flex justify-between items-center">
+        <div className="flex items-center gap-3">
+          <button onClick={handleBack} className="p-2 hover:bg-gray-100 rounded-lg transition-colors">
+            <ArrowLeft className="text-gray-600"/>
+          </button>
+          <div className="flex flex-col">
+            <h1 className="font-bold text-lg text-gray-800 hidden sm:block">{selectedCharacter.name}</h1>
+            <span className="text-xs text-gray-500 hidden sm:block">{selectedCharacter.role}</span>
           </div>
         </div>
-      </motion.header>
+        
+        <div className="flex gap-3 items-center">
+           <LanguageSelector />
+           {user ? (
+             <UserProfile /> 
+           ) : (
+             <button 
+               onClick={() => setShowAuthModal(true)}
+               className="p-2 bg-white rounded-lg shadow hover:bg-gray-50 text-gray-600"
+             >
+               <LogIn size={20}/>
+             </button>
+           )}
+        </div>
+      </header>
 
       {/* Main Content */}
-      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        {/* tesst */}
-        {/* <TextToSpeechExample /> */}
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 h-[calc(100vh-200px)]">
-          {/* Enhanced 3D Room */}
-          <motion.div
-            initial={{ opacity: 0, x: -20 }}
-            animate={{ opacity: 1, x: 0 }}
-            transition={{ delay: 0.2 }}
-            className="lg:col-span-2 bg-white/50 backdrop-blur-sm rounded-2xl shadow-xl overflow-hidden"
-          >
-            <VirtualRoom
-              character={selectedCharacter}
-              isListening={isListening}
-              isSpeaking={isSpeaking || isProcessing}
-            />
-          </motion.div>
-
-          {/* Chat Interface */}
-          <motion.div
-            initial={{ opacity: 0, x: 20 }}
-            animate={{ opacity: 1, x: 0 }}
-            transition={{ delay: 0.4 }}
-            className="lg:col-span-1"
-          >
-            <ChatInterface
-              onSendMessage={handleSendMessage}
-              messages={messages}
-              isListening={isListening}
-              isSpeaking={isSpeaking || isProcessing}
-              isProcessing={isProcessing}
-              onStartListening={startListening}
-              onStopListening={stopListening}
-              onToggleSpeech={toggleSpeech}
-              speechEnabled={speechEnabled}
-              transcript={transcript}
-              onSpeakMessage={handleSpeakMessage}
-            />
-          </motion.div>
+      <main className="pt-20 pb-4 px-4 max-w-7xl mx-auto h-screen flex gap-6">
+        {/* 3D Room - Ẩn trên mobile để tối ưu trải nghiệm */}
+        <div className="hidden lg:block w-2/3 bg-white/50 backdrop-blur-md rounded-2xl shadow-lg overflow-hidden relative border border-white/50">
+          <VirtualRoom 
+            character={selectedCharacter} 
+            isListening={isListening} 
+            isSpeaking={isSpeaking || isProcessing} 
+          />
+        </div>
+        
+        {/* Chat Interface - Full màn hình trên mobile */}
+        <div className="w-full lg:w-1/3 h-full">
+          <ChatInterface 
+            onSendMessage={handleSendMessage} 
+            messages={messages} 
+            isListening={isListening} 
+            isSpeaking={isSpeaking || isProcessing} 
+            isProcessing={isProcessing}
+            onStartListening={startListening} 
+            onStopListening={stopListening}
+            onToggleSpeech={handleToggleSpeech}
+            speechEnabled={speechEnabled} 
+            transcript={transcript}
+            onSpeakMessage={handleSpeakMessage} // Sử dụng hàm đã tối ưu
+          />
         </div>
       </main>
       
