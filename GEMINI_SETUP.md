@@ -79,3 +79,4 @@ Nếu gặp vấn đề, hãy kiểm tra:
 ---
 
 **Lưu ý**: Google Gemini API có giới hạn miễn phí. Kiểm tra usage tại [Google AI Studio](https://makersuite.google.com/) để theo dõi việc sử dụng.
+------
