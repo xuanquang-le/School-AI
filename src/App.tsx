@@ -3,6 +3,7 @@ import { useState, useCallback, useEffect, useRef } from 'react';
 import { motion } from 'framer-motion';
 import { useAuth } from './contexts/Authcontext';
 import CharacterSelection from './components/CharacterSelection';
+import VoiceModeSelection from './components/VoiceModeSelection';
 import AuthModal from './components/AuthModal';
 import UserProfile from './components/UserProfile';
 import VirtualRoom from './components/VirtualRoom';
@@ -27,6 +28,7 @@ function App() {
   const { user } = useAuth();
   
   const [selectedCharacter, setSelectedCharacter] = useState<Character | null>(null);
+  const [voiceModeChosen, setVoiceModeChosen] = useState(false); // Đã chọn "có âm thanh" hay "chỉ chat" chưa
   const [showAuthModal, setShowAuthModal] = useState(false);
   const [messages, setMessages] = useState<Message[]>([]);
   const [speechEnabled, setSpeechEnabled] = useState(true);
@@ -42,8 +44,8 @@ function App() {
   }, [stop]);
 
   const handleSpeakMessage = useCallback((text: string) => {
-    if (!text) stop(); else speak(text);
-  }, [speak, stop]);
+    if (!text) stop(); else speak(text, undefined, selectedCharacter?.id);
+  }, [speak, stop, selectedCharacter]);
 
   // --- LOGIC GỬI TIN NHẮN (ĐÃ ĐIỀU CHỈNH) ---
   const handleSendMessage = useCallback(async (text: string) => {
@@ -56,7 +58,7 @@ function App() {
 
     try {
       // 3. Lấy text từ AI (nhưng CHƯA hiện ra vội)
-      const response = await geminiApiService.getCounselingResponse(text, messages);
+      const response = await geminiApiService.getCounselingResponse(text, selectedCharacter, messages);
       
       if (!isMounted.current) return;
 
@@ -76,8 +78,8 @@ function App() {
 
       // 4. Gọi phát âm thanh
       if (speechEnabled) {
-        // Truyền hàm showAiMessageNow vào làm callback
-        speak(response, showAiMessageNow);
+        // Truyền hàm showAiMessageNow vào làm callback + đúng giọng của nhân vật
+        speak(response, showAiMessageNow, selectedCharacter?.id);
       } else {
         // Nếu tắt tiếng -> Hiện luôn
         showAiMessageNow();
@@ -87,16 +89,16 @@ function App() {
       console.error('Error:', error);
       setIsProcessing(false);
     }
-  }, [messages, speechEnabled, speak]);
+  }, [messages, speechEnabled, speak, selectedCharacter]);
 
   const { isListening, startListening, stopListening, transcript } = useSpeechRecognition({
     onResult: handleSendMessage,
     onError: (e) => console.error('Voice Error:', e)
   });
 
-  // Lời chào (Cũng áp dụng logic đồng bộ)
+  // Lời chào (Cũng áp dụng logic đồng bộ) - chỉ chạy sau khi đã chọn chế độ âm thanh
   useEffect(() => {
-    if (selectedCharacter && !hasGreeted) {
+    if (selectedCharacter && voiceModeChosen && !hasGreeted) {
       const greeting = selectedCharacter.greeting;
       const showGreeting = () => {
         setMessages([{ id: '1', text: greeting, isUser: false, timestamp: new Date() }]);
@@ -104,13 +106,15 @@ function App() {
       };
 
       setTimeout(() => {
-        if (speechEnabled) speak(greeting, showGreeting);
+        if (speechEnabled) speak(greeting, showGreeting, selectedCharacter.id);
         else showGreeting();
       }, 500);
     }
-  }, [selectedCharacter, hasGreeted, speechEnabled, speak]);
+  }, [selectedCharacter, voiceModeChosen, hasGreeted, speechEnabled, speak]);
 
-  const handleBack = () => { stop(); setSelectedCharacter(null); setMessages([]); setHasGreeted(false); };
+  const handleBack = () => { stop(); setSelectedCharacter(null); setVoiceModeChosen(false); setMessages([]); setHasGreeted(false); };
+  const handleBackToCharacters = () => { setSelectedCharacter(null); setVoiceModeChosen(false); };
+  const handleChooseVoiceMode = (withAudio: boolean) => { setSpeechEnabled(withAudio); setVoiceModeChosen(true); };
   const handleToggleSpeech = () => { if(speechEnabled) stop(); setSpeechEnabled(!speechEnabled); };
 
   if (!selectedCharacter) {
@@ -128,6 +132,16 @@ function App() {
         <CharacterSelection onSelectCharacter={setSelectedCharacter} />
         <AuthModal isOpen={showAuthModal} onClose={() => setShowAuthModal(false)} />
       </div>
+    );
+  }
+
+  if (!voiceModeChosen) {
+    return (
+      <VoiceModeSelection
+        character={selectedCharacter}
+        onSelectMode={handleChooseVoiceMode}
+        onBack={handleBackToCharacters}
+      />
     );
   }
 
