@@ -87,7 +87,19 @@ const translations: Record<Language, TranslationKeys> = {
     // Language Selector
     'language.vietnamese': 'Tiếng Việt',
     'language.english': 'English',
-    'language.select': 'Chọn ngôn ngữ'
+    'language.select': 'Chọn ngôn ngữ',
+
+    // Voice Mode Selection
+    'voiceMode.title': 'Bạn muốn trò chuyện như thế nào?',
+    'voiceMode.subtitle': 'Chọn chế độ phù hợp với bạn. Bạn vẫn có thể bật/tắt âm thanh bất cứ lúc nào trong lúc chat.',
+    'voiceMode.audio.title': 'Có giọng nói',
+    'voiceMode.audio.description': 'Nhân vật đọc to câu trả lời, trải nghiệm sống động hơn. Phản hồi sẽ chậm hơn một chút.',
+    'voiceMode.audio.badge': 'Chậm hơn',
+    'voiceMode.text.title': 'Chỉ nhắn tin',
+    'voiceMode.text.description': 'Chỉ hiện chữ, không phát âm thanh. Trả lời nhanh hơn và tiết kiệm hơn.',
+    'voiceMode.text.badge': 'Nhanh hơn',
+    'voiceMode.continue': 'Bắt đầu trò chuyện',
+    'voiceMode.back': 'Quay lại chọn nhân vật'
   },
   en: {
     // Character Selection
@@ -159,7 +171,19 @@ const translations: Record<Language, TranslationKeys> = {
     // Language Selector
     'language.vietnamese': 'Tiếng Việt',
     'language.english': 'English',
-    'language.select': 'Select language'
+    'language.select': 'Select language',
+
+    // Voice Mode Selection
+    'voiceMode.title': 'How would you like to chat?',
+    'voiceMode.subtitle': "Pick the mode that suits you. You can still turn audio on/off anytime during the chat.",
+    'voiceMode.audio.title': 'With voice',
+    'voiceMode.audio.description': 'The character reads replies aloud for a more immersive experience. Responses are a bit slower.',
+    'voiceMode.audio.badge': 'Slower',
+    'voiceMode.text.title': 'Text only',
+    'voiceMode.text.description': 'Text only, no audio. Faster and more efficient.',
+    'voiceMode.text.badge': 'Faster',
+    'voiceMode.continue': 'Start chatting',
+    'voiceMode.back': 'Back to character selection'
   }
 };
 
